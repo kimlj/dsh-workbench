@@ -1,0 +1,20 @@
+# dsh-workbench bundle patch.
+#
+# This layer is applied after dsh-base and dsh-web-app. It adds exactly one
+# host row: the human-terminal workbench service plus its authenticated
+# WebSocket route.
+#
+# The row MUST name the package root (`dsh-workbench`), not the `./host`
+# subpath. The client-plugin scan keys the browser roster on the Loader entry
+# name being the package name: with `dsh-workbench/host` the browser half was
+# silently skipped (no Workbench icon in the UI) while the host row still
+# loaded and served its route. Naming the root satisfies both halves, because
+# exports["."] is the host plugin and `dsh.client` supplies the browser bundle.
+#
+# The row publishes no Cordis service that another row consumes, and it is
+# deliberately NOT the agent-owned `ctx.terminals` registry: human terminals
+# live in their own trust domain so the DSH model has no handle to them.
+
+- insert:
+    - id: workbench
+      name: dsh-workbench

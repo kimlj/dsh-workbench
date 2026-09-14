@@ -1,0 +1,36 @@
+{
+  "name": "dsh-workbench",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Project-scoped multi-CLI terminal workbench for DeepSeek Harness: real persistent PTY sessions running PowerShell, Claude Code, Codex, OpenCode and Hermes side by side.",
+  "exports": {
+    ".": "./src/host/index.js",
+    "./host": "./src/host/index.js",
+    "./client": "./lib/client.js",
+    "./package.json": "./package.json"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "inject": []
+    }
+  },
+  "dependencies": {
+    "node-pty": "1.2.0-beta.15",
+    "ws": "8.21.0"
+  },
+  "devDependencies": {
+    "@xterm/addon-fit": "^0.10.0",
+    "@xterm/xterm": "^5.5.0",
+    "esbuild": "^0.25.0"
+  },
+  "scripts": {
+    "build": "node build.mjs",
+    "test": "node --test --test-isolation=none test/keymap.test.mjs",
+    "verify": "node verify.mjs"
+  }
+}

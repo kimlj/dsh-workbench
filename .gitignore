@@ -1,0 +1,11 @@
+# Dependencies (native node-pty prebuilds live here; never tracked).
+node_modules/
+
+# esbuild's intermediate output; `lib/client.js` is the wrapped artifact the
+# DSH profile actually loads and IS tracked.
+lib/client.body.js
+
+# Editor / OS noise.
+.DS_Store
+Thumbs.db
+*.log
