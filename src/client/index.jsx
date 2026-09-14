@@ -136,6 +136,33 @@ const PANEL_CSS = `
 .dshwr-meta{margin-left:auto;flex:none;font-size:11px;color:var(--dsw-cockpit-text-muted,var(--dsw-alias-label-caption));font-variant-numeric:tabular-nums}
 .dshwr-empty{font-size:12px;color:var(--dsw-cockpit-text-muted,var(--dsw-alias-label-caption))}
 .dshwr-dot{width:8px;height:8px;border-radius:50%;flex:none}
+/* Reference composition: 20px panel title, project toolbar, numbered tab strip,
+   terminal card with its own header, and an always-visible info rail. */
+.dshw-head{gap:12px;padding:14px 20px 10px;border-bottom:0.5px solid var(--dsw-cockpit-border-subtle,var(--dsw-alias-border-l1))}
+.dshw-head-title{font-size:20px;font-weight:600;line-height:26px}
+.dshw-toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;flex:none;padding:10px 20px;border-bottom:0.5px solid var(--dsw-cockpit-border-subtle,var(--dsw-alias-border-l1))}
+.dshw-toolbar-label{font-size:12px;color:var(--dsw-cockpit-text-muted,var(--dsw-alias-label-caption))}
+.dshw-path{min-width:0;max-width:360px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:var(--ds-font-family-code,monospace);font-size:11px;color:var(--dsw-cockpit-text-muted,var(--dsw-alias-label-caption))}
+.dshw-pill{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:999px;font-size:11px;background:var(--dsw-alias-interactive-bg-hover);color:var(--dsw-alias-label-secondary)}
+.dshw-pill[data-clean="true"]{color:var(--dsw-alias-state-success-primary)}
+.dshw-tabs{gap:6px;padding:10px 20px 0}
+.dshw-tab{height:32px;padding:0 12px;border:0.5px solid transparent;border-radius:8px 8px 0 0;font-size:13px;color:var(--dsw-cockpit-text-secondary,var(--dsw-alias-label-secondary))}
+.dshw-tab[data-active="true"]{background:var(--dsw-cockpit-bg-layer-1,var(--dsw-alias-bg-layer-1));color:var(--dsw-alias-label-primary);border-color:var(--dsw-cockpit-border-subtle,var(--dsw-alias-border-l1));border-bottom-color:transparent;box-shadow:inset 0 2px 0 var(--dsw-cockpit-accent-primary,var(--dsw-alias-brand-primary))}
+.dshw-badge{min-width:14px;font-size:11px;opacity:.7}
+.dshw-add{position:relative;flex:none}
+.dshw-tab-add{display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border:0.5px solid var(--dsw-cockpit-border-subtle,var(--dsw-alias-border-l1));border-radius:8px;background:transparent;color:var(--dsw-alias-label-secondary);font-size:16px;line-height:1;cursor:pointer}
+.dshw-tab-add:hover{background:var(--dsw-alias-interactive-bg-hover);color:var(--dsw-alias-label-primary)}
+.dshw-addmenu{position:absolute;top:38px;left:0;z-index:20;display:flex;flex-direction:column;gap:2px;min-width:280px;padding:6px;border:0.5px solid var(--dsw-alias-border-l2);border-radius:10px;background:var(--dsw-alias-bg-layer-3);box-shadow:var(--dsw-elevation-prominent)}
+.dshw-addmenu-item{display:flex;align-items:center;gap:8px;padding:7px 10px;border:none;border-radius:6px;background:transparent;color:var(--dsw-alias-label-primary);font-size:13px;text-align:left;cursor:pointer}
+.dshw-addmenu-item:hover:not(:disabled){background:var(--dsw-alias-interactive-bg-hover)}
+.dshw-addmenu-item:disabled{opacity:.4;cursor:not-allowed}
+.dshw-addmenu-custom{display:flex;gap:6px;padding:6px 4px 2px;border-top:0.5px solid var(--dsw-cockpit-border-subtle,var(--dsw-alias-border-l1))}
+.dshw-addmenu-custom .dshw-input{min-width:0;flex:1 1 auto}
+.dshw-split{display:flex;flex:1 1 auto;min-height:0}
+.dshw-card{margin:10px 0 10px 20px}
+.dshw-termhead{gap:10px;padding:9px 12px;font-size:13px;border-bottom:0.5px solid var(--dsw-cockpit-border-subtle,var(--dsw-alias-border-l1))}
+.dshw-termhead-label{font-weight:500;color:var(--dsw-alias-label-primary)}
+.dshw-rail{display:flex;flex:0 0 320px;flex-direction:column;gap:14px;width:320px;min-width:0;overflow-y:auto;padding:12px;border-left:0.5px solid var(--dsw-cockpit-border-subtle,var(--dsw-alias-border-l1))}
 `
 
 // ── module-scope store ────────────────────────────────────────────────────
@@ -366,6 +393,9 @@ function handle(message) {
       const preferred = running ?? state.sessions[0]
       if (state.activeId === null && preferred !== undefined) setActive(preferred.id)
       else notify()
+      // The contextual rail mounts before the socket opens, so its first
+      // request can be dropped; ask again once the bootstrap lands.
+      requestProjectInfo(railProjectId())
       return
     }
     case 'session': {
@@ -502,19 +532,15 @@ function relativeTime(ms) {
 }
 
 /**
- * The Workbench's contextual rail tab: read-only project, git, file, and
- * terminal facts the plugin already owns. It registers through the same public
- * rail path as any other type and exposes no PTY handle or terminal content.
+ * The read-only rail sections, shared by the Workbench's always-visible info
+ * column and by the rail tab the plugin registers.
  */
-function WorkbenchRail() {
-  const [, forceRender] = React.useReducer((count) => count + 1, 0)
-  React.useEffect(() => subscribe(forceRender), [])
-  React.useEffect(() => { requestProjectInfo(railProjectId()) }, [state.activeProjectId])
+function RailSections() {
   const projectId = railProjectId()
   const project = state.projects.find((entry) => entry.id === projectId)
   const info = state.projectInfo[projectId]
   return (
-    <div className="dshwr-root" data-workbench-rail>
+    <>
       <section className="dshwr-section">
         <span className="dshwr-head">Project Info</span>
         <div className="dshwr-card">
@@ -557,6 +583,21 @@ function WorkbenchRail() {
             </div>
           ))}
       </section>
+    </>
+  )
+}
+
+/**
+ * The Workbench's contextual rail tab: the shared read-only sections, rendered
+ * in a registered rail tab. No PTY handle or terminal content is exposed.
+ */
+function WorkbenchRail() {
+  const [, forceRender] = React.useReducer((count) => count + 1, 0)
+  React.useEffect(() => subscribe(forceRender), [])
+  React.useEffect(() => { requestProjectInfo(railProjectId()) }, [state.activeProjectId])
+  return (
+    <div className="dshwr-root" data-workbench-rail>
+      <RailSections />
     </div>
   )
 }
@@ -589,6 +630,7 @@ function WorkbenchPanel() {
   const rootRef = React.useRef(null)
   const [custom, setCustom] = React.useState('')
   const [keysOpen, setKeysOpen] = React.useState(false)
+  const [addOpen, setAddOpen] = React.useState(false)
   const [draft, setDraft] = React.useState(null)
   const [keyErrors, setKeyErrors] = React.useState(null)
 
@@ -650,6 +692,14 @@ function WorkbenchPanel() {
 
   const customPreset = state.presets.find((preset) => preset.id === 'custom')
   const active = state.sessions.find((session) => session.id === state.activeId)
+  const projectId = railProjectId()
+  const project = state.projects.find((entry) => entry.id === projectId)
+  const info = state.projectInfo[projectId]
+  const projectPath = info?.path ?? project?.path ?? state.defaultCwd ?? ''
+  const clearActive = () => {
+    const record = state.activeId === null ? undefined : records.get(state.activeId)
+    if (record !== undefined) record.term.clear()
+  }
 
   return (
     <div className="dshw-root" ref={rootRef}>
@@ -659,84 +709,7 @@ function WorkbenchPanel() {
           <span className="dshw-head-title">Workbench</span>
           <span className="dshw-head-sub">Run your tools. One workspace, all terminals.</span>
         </span>
-      </div>
-
-      <div className="dshw-bar">
-        <div className="dshw-group">
-          <select
-            className="dshw-select"
-            value={state.activeProjectId ?? ''}
-            onChange={(event) => {
-              state.activeProjectId = event.target.value === '' ? null : event.target.value
-              notify()
-            }}
-            title="Project that new terminals start in"
-          >
-            <option value="">{state.defaultCwd ?? 'default directory'}</option>
-            {state.projects.map((project) => (
-              <option key={project.id} value={project.id}>
-                {project.name} — {project.path}
-              </option>
-            ))}
-          </select>
-          <button className="dshw-btn" type="button" onClick={() => void pickProject()}>
-            Add project…
-          </button>
-          {state.activeProjectId !== null && (
-            <button
-              className="dshw-btn"
-              type="button"
-              title="Unregister this project (does not touch the files)"
-              onClick={() => {
-                send({ t: 'removeProject', id: state.activeProjectId })
-                state.activeProjectId = null
-                notify()
-              }}
-            >
-              Forget
-            </button>
-          )}
-        </div>
-
-        <div className="dshw-spacer" />
-
-        <div className="dshw-group">
-          {state.presets
-            .filter((preset) => preset.id !== 'custom')
-            .map((preset) => (
-              <button
-                key={preset.id}
-                className="dshw-btn"
-                type="button"
-                disabled={!preset.available}
-                title={preset.available ? preset.hint : `${preset.command} was not found on PATH`}
-                onClick={() => spawnSession(preset.id)}
-              >
-                <span className="dshw-dot" style={{ background: preset.accent }} />
-                {preset.label}
-              </button>
-            ))}
-        </div>
-      </div>
-
-      <div className="dshw-bar">
-        <input
-          className="dshw-input"
-          value={custom}
-          placeholder={customPreset?.hint ?? 'Run any installed command…'}
-          onChange={(event) => setCustom(event.target.value)}
-          onKeyDown={(event) => {
-            if (event.key === 'Enter' && custom.trim() !== '') spawnSession('custom', custom.trim())
-          }}
-        />
-        <button
-          className="dshw-btn"
-          type="button"
-          disabled={custom.trim() === ''}
-          onClick={() => spawnSession('custom', custom.trim())}
-        >
-          Run custom
-        </button>
+        <span className="dshw-spacer" />
         <button
           className="dshw-btn"
           type="button"
@@ -749,6 +722,48 @@ function WorkbenchPanel() {
           }}
         >
           Keys…
+        </button>
+      </div>
+
+      <div className="dshw-toolbar">
+        <span className="dshw-toolbar-label">Project</span>
+        <select
+          className="dshw-select"
+          value={state.activeProjectId ?? ''}
+          onChange={(event) => {
+            state.activeProjectId = event.target.value === '' ? null : event.target.value
+            notify()
+          }}
+          title="Project that new terminals start in"
+        >
+          <option value="">{state.defaultCwd ?? 'default directory'}</option>
+          {state.projects.map((entry) => (
+            <option key={entry.id} value={entry.id}>
+              {entry.name} — {entry.path}
+            </option>
+          ))}
+        </select>
+        <span className="dshw-path" title={projectPath}>{projectPath}</span>
+        {info?.branch != null && <span className="dshw-pill">{info.branch}</span>}
+        {info?.clean === true && <span className="dshw-pill" data-clean="true">Clean</span>}
+        {info?.clean === false && <span className="dshw-pill">{info.changed} changed</span>}
+        <span className="dshw-spacer" />
+        {state.activeProjectId !== null && (
+          <button
+            className="dshw-btn"
+            type="button"
+            title="Unregister this project (does not touch the files)"
+            onClick={() => {
+              send({ t: 'removeProject', id: state.activeProjectId })
+              state.activeProjectId = null
+              notify()
+            }}
+          >
+            Forget
+          </button>
+        )}
+        <button className="dshw-btn" type="button" onClick={() => void pickProject()}>
+          + Add Project
         </button>
       </div>
 
@@ -865,27 +880,85 @@ function WorkbenchPanel() {
             </button>
           )
         })}
-      </div>
-
-      <div className="dshw-card">
-        {active !== undefined && (
-          <div className="dshw-termhead">
-            <span className="dshw-dot" style={{ background: active.accent }} />
-            <span>{active.label}</span>
-            <span className="dshw-cwd" title={active.cwd}>{active.cwd}</span>
-          </div>
-        )}
-        <div className="dshw-stage" ref={stageRef}>
-          {state.sessions.length === 0 && (
-            <div className="dshw-empty">
-              <div>No terminals yet.</div>
-              <div>
-                Choose a project, then open PowerShell, Claude Code, Codex, OpenCode or Hermes —
-                each runs as its own real CLI in that directory.
+        <div className="dshw-add">
+          <button
+            type="button"
+            className="dshw-tab-add"
+            aria-expanded={addOpen}
+            title="New terminal"
+            onClick={() => { setAddOpen(open => !open) }}
+          >
+            +
+          </button>
+          {addOpen && (
+            <div className="dshw-addmenu" role="menu">
+              {state.presets.filter((preset) => preset.id !== 'custom').map((preset) => (
+                <button
+                  key={preset.id}
+                  type="button"
+                  role="menuitem"
+                  className="dshw-addmenu-item"
+                  disabled={!preset.available}
+                  title={preset.available ? preset.hint : `${preset.command} was not found on PATH`}
+                  onClick={() => { setAddOpen(false); spawnSession(preset.id) }}
+                >
+                  <span className="dshw-dot" style={{ background: preset.accent }} />
+                  {preset.label}
+                </button>
+              ))}
+              <div className="dshw-addmenu-custom">
+                <input
+                  className="dshw-input"
+                  value={custom}
+                  placeholder={customPreset?.hint ?? 'Run any installed command…'}
+                  onChange={(event) => setCustom(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter' && custom.trim() !== '') {
+                      setAddOpen(false)
+                      spawnSession('custom', custom.trim())
+                    }
+                  }}
+                />
+                <button
+                  className="dshw-btn"
+                  type="button"
+                  disabled={custom.trim() === ''}
+                  onClick={() => { setAddOpen(false); spawnSession('custom', custom.trim()) }}
+                >
+                  Run
+                </button>
               </div>
             </div>
           )}
         </div>
+      </div>
+
+      <div className="dshw-split">
+        <div className="dshw-card">
+          {active !== undefined && (
+            <div className="dshw-termhead">
+              <span className="dshw-dot" style={{ background: active.accent }} />
+              <span className="dshw-termhead-label">{active.label}</span>
+              <span className="dshw-cwd" title={active.cwd}>{active.cwd}</span>
+              <span className="dshw-spacer" />
+              <button className="dshw-btn" type="button" onClick={clearActive}>Clear</button>
+            </div>
+          )}
+          <div className="dshw-stage" ref={stageRef}>
+            {state.sessions.length === 0 && (
+              <div className="dshw-empty">
+                <div>No terminals yet.</div>
+                <div>
+                  Choose a project, then open PowerShell, Claude Code, Codex, OpenCode or Hermes —
+                  each runs as its own real CLI in that directory.
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+        <aside className="dshw-rail" aria-label="Project information">
+          <RailSections />
+        </aside>
       </div>
 
       <div className="dshw-status">
@@ -952,6 +1025,18 @@ export function apply(ctx) {
   installSeat(slots, 'main', () =>
     slots.register({ name: 'main', key: PANEL_ID }, () => <WorkbenchPanel />),
   )
+
+  // Land on the Workbench — the cockpit's primary surface. The frame owns the
+  // selection and this asks for it once at boot; a later user selection is
+  // theirs. A composition without the layout service, or without this main
+  // key, simply keeps the Conversation.
+  ctx.inject(['layout'], (scope) => {
+    try {
+      scope.layout.selectPanel(PANEL_ID)
+    } catch (error) {
+      console.info('[dsh-workbench] could not select the Workbench main panel:', String(error?.message ?? error))
+    }
+  })
 
   // Contextual rail: a read-only tab registered through the same public path
   // any other rail type uses. It carries only facts this plugin already owns,
