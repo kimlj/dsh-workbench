@@ -85,84 +85,118 @@ const TERMINAL_THEME = {
 }
 
 const PANEL_CSS = `
-.dshw-root{display:flex;flex-direction:column;height:100%;min-height:0;color:var(--dsw-alias-label-primary)}
-.dshw-head{display:flex;align-items:center;gap:12px;flex:none;padding:14px 20px 10px}
-.dshw-head-tile{display:flex;align-items:center;justify-content:center;flex:none;width:32px;height:32px;border-radius:8px;background:var(--dsw-cockpit-bg-layer-1,var(--dsw-alias-bg-layer-1));border:0.5px solid var(--dsw-cockpit-border-subtle,var(--dsw-alias-border-l1));color:var(--dsw-cockpit-text-secondary,var(--dsw-alias-label-secondary))}
-.dshw-head-text{display:flex;flex-direction:column;gap:1px;min-width:0}
-.dshw-head-title{font-size:16px;font-weight:600;line-height:22px}
-.dshw-head-sub{font-size:12px;line-height:16px;color:var(--dsw-cockpit-text-muted,var(--dsw-alias-label-caption))}
-.dshw-bar{display:flex;flex-wrap:wrap;gap:6px;align-items:center;flex:none;padding:8px 20px;border-bottom:0.5px solid var(--dsw-cockpit-border-subtle,var(--dsw-alias-border-l1))}
-.dshw-group{display:flex;gap:6px;align-items:center;flex-wrap:wrap;min-width:0}
+/* ── frame ──────────────────────────────────────────────────────────────
+   The panel is a two-column surface of its own: the working column (header,
+   project toolbar, terminal tabs, terminal card, dock) and a full-height
+   read-only information rail, separated by one hairline. Everything is sized
+   from the reference composition, on the shipped cockpit roles only. */
+.dshw-root{display:flex;height:100%;min-height:0;min-width:0;font-size:13px;color:var(--dsw-cockpit-text-primary,var(--dsw-alias-label-primary))}
+.dshw-main{display:flex;flex-direction:column;flex:1 1 auto;min-width:0;min-height:0}
 .dshw-spacer{flex:1 1 auto}
-.dshw-btn{border:0.5px solid var(--dsw-cockpit-border-subtle,var(--dsw-alias-border-l1));background:var(--dsw-cockpit-bg-layer-1,var(--dsw-alias-bg-layer-1));color:var(--dsw-alias-label-primary);border-radius:8px;padding:5px 10px;font-size:12px;line-height:1.4;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+.dshw-dot{width:7px;height:7px;border-radius:50%;flex:0 0 auto}
+
+/* ── panel header ─────────────────────────────────────────────────────── */
+.dshw-head{display:flex;align-items:center;gap:13px;flex:none;height:80px;padding:0 18px}
+.dshw-head-tile{display:flex;align-items:center;justify-content:center;flex:none;width:42px;height:42px;border-radius:11px;background:color-mix(in srgb,var(--dsw-cockpit-accent-primary,#3b82f6) 26%,transparent);border:0.5px solid color-mix(in srgb,var(--dsw-cockpit-accent-primary,#3b82f6) 42%,transparent);color:#bfd7ff}
+.dshw-head-text{display:flex;flex-direction:column;gap:2px;min-width:0}
+.dshw-head-title{font-size:20px;font-weight:600;line-height:25px;letter-spacing:-.01em}
+.dshw-head-sub{font-size:12.5px;line-height:16px;color:var(--dsw-cockpit-text-muted,var(--dsw-alias-label-caption))}
+
+/* ── shared controls ──────────────────────────────────────────────────── */
+.dshw-icon{display:inline-flex;align-items:center;justify-content:center;flex:none;width:28px;height:28px;padding:0;border:0;border-radius:7px;background:transparent;color:var(--dsw-cockpit-text-secondary,var(--dsw-alias-label-secondary));cursor:pointer}
+.dshw-icon:hover:not(:disabled){background:var(--dsw-alias-interactive-bg-hover);color:var(--dsw-cockpit-text-primary,var(--dsw-alias-label-primary))}
+.dshw-icon:disabled{opacity:.35;cursor:not-allowed}
+.dshw-icon[data-on="true"]{color:var(--dsw-cockpit-accent-primary,#3b82f6)}
+.dshw-chip{display:inline-flex;align-items:center;gap:7px;flex:none;height:29px;max-width:260px;padding:0 9px;border:0.5px solid var(--dsw-cockpit-border-subtle,var(--dsw-alias-border-l1));border-radius:7px;background:var(--dsw-cockpit-bg-layer-1,var(--dsw-alias-bg-layer-1));color:var(--dsw-cockpit-text-primary,var(--dsw-alias-label-primary));font-size:12.5px;font-family:inherit;line-height:1;cursor:pointer;white-space:nowrap}
+.dshw-chip:hover:not(:disabled){background:var(--dsw-alias-interactive-bg-hover)}
+.dshw-chip-label{min-width:0;overflow:hidden;text-overflow:ellipsis}
+.dshw-chev{flex:none;opacity:.55}
+.dshw-primary{display:inline-flex;align-items:center;gap:6px;flex:none;height:31px;padding:0 13px;border:0;border-radius:8px;background:var(--dsw-cockpit-accent-primary,#3b82f6);color:#fff;font-size:12.5px;font-weight:500;font-family:inherit;cursor:pointer}
+.dshw-primary:hover{background:var(--dsw-cockpit-accent-hover,#2563eb)}
+.dshw-text{display:inline-flex;align-items:center;gap:6px;flex:none;height:27px;padding:0 9px;border:0;border-radius:6px;background:transparent;color:var(--dsw-cockpit-text-secondary,var(--dsw-alias-label-secondary));font-size:12.5px;font-family:inherit;cursor:pointer}
+.dshw-text:hover:not(:disabled){background:var(--dsw-alias-interactive-bg-hover);color:var(--dsw-cockpit-text-primary,var(--dsw-alias-label-primary))}
+.dshw-text:disabled{opacity:.35;cursor:not-allowed}
+.dshw-btn{display:inline-flex;align-items:center;gap:6px;height:29px;padding:0 10px;border:0.5px solid var(--dsw-cockpit-border-subtle,var(--dsw-alias-border-l1));border-radius:7px;background:var(--dsw-cockpit-bg-layer-1,var(--dsw-alias-bg-layer-1));color:var(--dsw-alias-label-primary);font-size:12.5px;font-family:inherit;cursor:pointer}
 .dshw-btn:hover:not(:disabled){background:var(--dsw-alias-interactive-bg-hover)}
 .dshw-btn:disabled{opacity:.4;cursor:not-allowed}
-.dshw-dot{width:8px;height:8px;border-radius:50%;flex:0 0 auto}
-.dshw-select{background:var(--dsw-cockpit-bg-layer-1,var(--dsw-alias-bg-layer-1));color:inherit;border:0.5px solid var(--dsw-cockpit-border-subtle,var(--dsw-alias-border-l1));border-radius:8px;padding:5px 8px;font-size:12px;max-width:320px}
-.dshw-input{background:var(--dsw-cockpit-bg-layer-1,var(--dsw-alias-bg-layer-1));color:inherit;border:0.5px solid var(--dsw-cockpit-border-subtle,var(--dsw-alias-border-l1));border-radius:8px;padding:5px 10px;font-size:12px;min-width:180px;flex:1 1 260px}
-.dshw-tabs{display:flex;gap:4px;align-items:center;flex:none;padding:8px 20px 0;overflow-x:auto}
-.dshw-tab{display:inline-flex;align-items:center;gap:7px;border:0.5px solid transparent;background:transparent;color:var(--dsw-cockpit-text-secondary,var(--dsw-alias-label-secondary));border-radius:8px 8px 0 0;padding:6px 10px;font-size:12px;cursor:pointer;white-space:nowrap}
-.dshw-tab:hover{background:var(--dsw-alias-interactive-bg-hover)}
-.dshw-tab[data-active="true"]{background:var(--dsw-cockpit-bg-layer-1,var(--dsw-alias-bg-layer-1));color:var(--dsw-alias-label-primary);border-color:var(--dsw-cockpit-border-subtle,var(--dsw-alias-border-l1));border-bottom-color:transparent;box-shadow:inset 0 2px 0 var(--dsw-cockpit-accent-primary,var(--dsw-alias-brand-primary))}
-.dshw-tab-x{opacity:.6;font-weight:700}
-.dshw-tab-x:hover{opacity:1}
-.dshw-badge{opacity:.5;font-size:10px;min-width:10px;text-align:center;font-variant-numeric:tabular-nums}
-.dshw-card{display:flex;flex:1 1 auto;flex-direction:column;min-height:320px;margin:0 20px 12px;border:0.5px solid var(--dsw-cockpit-border-subtle,var(--dsw-alias-border-l1));border-radius:10px;background:var(--dsw-alias-bg-base);overflow:hidden}
-.dshw-termhead{display:flex;align-items:center;gap:10px;flex:none;padding:8px 12px;border-bottom:0.5px solid var(--dsw-cockpit-border-subtle,var(--dsw-alias-border-l1));font-size:12px;color:var(--dsw-alias-label-primary)}
-.dshw-cwd{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:var(--ds-font-family-code,monospace);font-size:11px;color:var(--dsw-cockpit-text-muted,var(--dsw-alias-label-caption))}
-.dshw-stage{flex:1 1 auto;min-height:0;position:relative}
-.dshw-host,.dshw-term{position:absolute;inset:0;padding:6px 10px}
-.dshw-empty{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;color:var(--dsw-cockpit-text-muted,var(--dsw-alias-label-caption));font-size:12px;text-align:center;padding:16px}
-.dshw-status{display:flex;gap:10px;align-items:center;flex:none;padding:5px 20px;font-size:11px;color:var(--dsw-cockpit-text-muted,var(--dsw-alias-label-caption));border-top:0.5px solid var(--dsw-cockpit-border-subtle,var(--dsw-alias-border-l1))}
-.dshw-err{color:var(--dsw-alias-state-error-primary);font-weight:600}
-.dshw-keys{display:flex;flex-wrap:wrap;gap:10px;align-items:center;padding:7px 20px;font-size:11px;border-bottom:0.5px solid var(--dsw-cockpit-border-subtle,var(--dsw-alias-border-l1))}
-.dshw-keys label{display:inline-flex;align-items:center;gap:5px}
-.dshw-keys label>span{opacity:.7}
-.dshw-key{background:transparent;color:inherit;border:0.5px solid var(--dsw-cockpit-border-subtle,var(--dsw-alias-border-l1));border-radius:5px;padding:3px 6px;font-size:11px;font-family:inherit;min-width:150px}
-.dshw-key[data-invalid="true"]{border-color:var(--dsw-alias-state-error-primary)}
-.dshw-keys-hint{flex:1 1 100%;opacity:.6;line-height:1.5}
-.dshw-keys-err{color:var(--dsw-alias-state-error-primary);font-weight:600}
-.dshwr-root{display:flex;flex-direction:column;gap:14px;padding:12px}
-.dshwr-section{display:flex;flex-direction:column;gap:6px}
-.dshwr-head{font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--dsw-cockpit-text-muted,var(--dsw-alias-label-caption))}
-.dshwr-card{display:flex;flex-direction:column;gap:6px;padding:10px 12px;border:0.5px solid var(--dsw-cockpit-border-subtle,var(--dsw-alias-border-l1));border-radius:10px;background:var(--dsw-cockpit-bg-layer-1,var(--dsw-alias-bg-layer-1))}
-.dshwr-name{font-size:13px;font-weight:500;color:var(--dsw-alias-label-primary)}
-.dshwr-path{font-family:var(--ds-font-family-code,monospace);font-size:11px;line-height:16px;color:var(--dsw-cockpit-text-muted,var(--dsw-alias-label-caption));overflow-wrap:anywhere}
-.dshwr-pills{display:flex;flex-wrap:wrap;gap:6px}
-.dshwr-pill{display:inline-flex;align-items:center;gap:5px;padding:2px 8px;border-radius:999px;font-size:11px;background:var(--dsw-alias-interactive-bg-hover);color:var(--dsw-alias-label-secondary)}
-.dshwr-pill[data-clean="true"]{color:var(--dsw-alias-state-success-primary)}
-.dshwr-row{display:flex;align-items:center;gap:8px;padding:3px 0;font-size:12px}
-.dshwr-row-name{min-width:0;flex:1 1 auto;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--dsw-alias-label-primary)}
-.dshwr-meta{margin-left:auto;flex:none;font-size:11px;color:var(--dsw-cockpit-text-muted,var(--dsw-alias-label-caption));font-variant-numeric:tabular-nums}
-.dshwr-empty{font-size:12px;color:var(--dsw-cockpit-text-muted,var(--dsw-alias-label-caption))}
-.dshwr-dot{width:8px;height:8px;border-radius:50%;flex:none}
-/* Reference composition: 20px panel title, project toolbar, numbered tab strip,
-   terminal card with its own header, and an always-visible info rail. */
-.dshw-head{gap:12px;padding:14px 20px 10px;border-bottom:0.5px solid var(--dsw-cockpit-border-subtle,var(--dsw-alias-border-l1))}
-.dshw-head-title{font-size:20px;font-weight:600;line-height:26px}
-.dshw-toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;flex:none;padding:10px 20px;border-bottom:0.5px solid var(--dsw-cockpit-border-subtle,var(--dsw-alias-border-l1))}
-.dshw-toolbar-label{font-size:12px;color:var(--dsw-cockpit-text-muted,var(--dsw-alias-label-caption))}
-.dshw-path{min-width:0;max-width:360px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:var(--ds-font-family-code,monospace);font-size:11px;color:var(--dsw-cockpit-text-muted,var(--dsw-alias-label-caption))}
-.dshw-pill{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:999px;font-size:11px;background:var(--dsw-alias-interactive-bg-hover);color:var(--dsw-alias-label-secondary)}
-.dshw-pill[data-clean="true"]{color:var(--dsw-alias-state-success-primary)}
-.dshw-tabs{gap:6px;padding:10px 20px 0}
-.dshw-tab{height:32px;padding:0 12px;border:0.5px solid transparent;border-radius:8px 8px 0 0;font-size:13px;color:var(--dsw-cockpit-text-secondary,var(--dsw-alias-label-secondary))}
-.dshw-tab[data-active="true"]{background:var(--dsw-cockpit-bg-layer-1,var(--dsw-alias-bg-layer-1));color:var(--dsw-alias-label-primary);border-color:var(--dsw-cockpit-border-subtle,var(--dsw-alias-border-l1));border-bottom-color:transparent;box-shadow:inset 0 2px 0 var(--dsw-cockpit-accent-primary,var(--dsw-alias-brand-primary))}
-.dshw-badge{min-width:14px;font-size:11px;opacity:.7}
-.dshw-add{position:relative;flex:none}
-.dshw-tab-add{display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border:0.5px solid var(--dsw-cockpit-border-subtle,var(--dsw-alias-border-l1));border-radius:8px;background:transparent;color:var(--dsw-alias-label-secondary);font-size:16px;line-height:1;cursor:pointer}
-.dshw-tab-add:hover{background:var(--dsw-alias-interactive-bg-hover);color:var(--dsw-alias-label-primary)}
-.dshw-addmenu{position:absolute;top:38px;left:0;z-index:20;display:flex;flex-direction:column;gap:2px;min-width:280px;padding:6px;border:0.5px solid var(--dsw-alias-border-l2);border-radius:10px;background:var(--dsw-alias-bg-layer-3);box-shadow:var(--dsw-elevation-prominent)}
-.dshw-addmenu-item{display:flex;align-items:center;gap:8px;padding:7px 10px;border:none;border-radius:6px;background:transparent;color:var(--dsw-alias-label-primary);font-size:13px;text-align:left;cursor:pointer}
-.dshw-addmenu-item:hover:not(:disabled){background:var(--dsw-alias-interactive-bg-hover)}
-.dshw-addmenu-item:disabled{opacity:.4;cursor:not-allowed}
-.dshw-addmenu-custom{display:flex;gap:6px;padding:6px 4px 2px;border-top:0.5px solid var(--dsw-cockpit-border-subtle,var(--dsw-alias-border-l1))}
+.dshw-input{height:29px;padding:0 10px;border:0.5px solid var(--dsw-cockpit-border-subtle,var(--dsw-alias-border-l1));border-radius:7px;background:var(--dsw-cockpit-bg-base,var(--dsw-alias-bg-base));color:inherit;font-size:12.5px;font-family:inherit}
+.dshw-input:focus-visible{outline:none;border-color:color-mix(in srgb,var(--dsw-cockpit-accent-primary,#3b82f6) 55%,transparent)}
+.dshw-menu{position:absolute;z-index:30;display:flex;flex-direction:column;gap:1px;min-width:250px;padding:5px;border:0.5px solid var(--dsw-alias-border-l2);border-radius:10px;background:var(--dsw-alias-bg-layer-3);box-shadow:var(--dsw-elevation-prominent,0 12px 32px #0009)}
+.dshw-menu-item{display:flex;align-items:center;gap:9px;width:100%;min-height:30px;padding:0 9px;border:0;border-radius:6px;background:transparent;color:var(--dsw-alias-label-primary);font-size:12.5px;font-family:inherit;text-align:left;cursor:pointer}
+.dshw-menu-item:hover:not(:disabled){background:var(--dsw-alias-interactive-bg-hover)}
+.dshw-menu-item:disabled{opacity:.4;cursor:not-allowed}
+.dshw-menu-note{padding:2px 9px 6px;font-size:11px;color:var(--dsw-cockpit-text-muted,var(--dsw-alias-label-caption))}
+.dshw-menu-sep{margin:4px 0;border-top:0.5px solid var(--dsw-cockpit-border-subtle,var(--dsw-alias-border-l1))}
+
+/* preset identity: one accent-tinted glyph tile, used by tabs, menu and card */
+.dshw-glyph{display:inline-flex;align-items:center;justify-content:center;flex:none;width:20px;height:20px;border-radius:6px;font-size:10px;font-weight:700;letter-spacing:-.02em;color:#fff}
+
+/* ── project toolbar ──────────────────────────────────────────────────── */
+.dshw-toolbar{display:flex;align-items:center;gap:9px;flex:none;height:46px;padding:0 18px;border-bottom:0.5px solid var(--dsw-cockpit-border-subtle,var(--dsw-alias-border-l1))}
+.dshw-toolbar-label{flex:none;font-size:12.5px;color:var(--dsw-cockpit-text-muted,var(--dsw-alias-label-caption))}
+.dshw-path{min-width:0;flex:0 1 auto;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:var(--ds-font-family-code,ui-monospace,monospace);font-size:12px;color:var(--dsw-cockpit-text-muted,var(--dsw-alias-label-caption))}
+.dshw-meta{display:inline-flex;align-items:center;gap:6px;flex:none;font-size:12.5px;color:var(--dsw-cockpit-text-secondary,var(--dsw-alias-label-secondary))}
+.dshw-meta[data-clean="true"]{color:var(--dsw-cockpit-success,var(--dsw-alias-state-success-primary))}
+.dshw-hold{position:relative;flex:none;display:inline-flex}
+
+/* ── terminal tabs ────────────────────────────────────────────────────── */
+.dshw-tabrow{display:flex;align-items:flex-end;gap:4px;flex:none;height:44px;padding:0 14px 0 18px;border-bottom:0.5px solid var(--dsw-cockpit-border-subtle,var(--dsw-alias-border-l1))}
+.dshw-tabs{display:flex;align-items:flex-end;gap:3px;flex:1 1 auto;min-width:0;height:100%;overflow-x:auto;overflow-y:hidden;scrollbar-width:none}
+.dshw-tabs::-webkit-scrollbar{display:none}
+.dshw-tab{position:relative;bottom:-0.5px;display:inline-flex;align-items:center;gap:8px;flex:none;height:37px;padding:0 7px 0 8px;border:0.5px solid transparent;border-radius:8px 8px 0 0;background:transparent;color:var(--dsw-cockpit-text-secondary,var(--dsw-alias-label-secondary));font-size:13px;font-family:inherit;cursor:pointer;white-space:nowrap}
+.dshw-tab:hover{background:var(--dsw-alias-interactive-bg-hover);color:var(--dsw-cockpit-text-primary,var(--dsw-alias-label-primary))}
+.dshw-tab[data-active="true"]{background:var(--dsw-cockpit-bg-layer-1,var(--dsw-alias-bg-layer-1));border-color:var(--dsw-cockpit-border-subtle,var(--dsw-alias-border-l1));border-bottom-color:var(--dsw-cockpit-bg-layer-1,var(--dsw-alias-bg-layer-1));color:var(--dsw-cockpit-text-primary,var(--dsw-alias-label-primary))}
+.dshw-tab[data-active="true"]::after{content:"";position:absolute;left:-0.5px;right:-0.5px;top:-0.5px;height:2px;border-radius:2px 2px 0 0;background:var(--dsw-cockpit-accent-primary,#3b82f6)}
+.dshw-tabnum{flex:none;font-size:11.5px;color:var(--dsw-cockpit-text-muted,var(--dsw-alias-label-caption));font-variant-numeric:tabular-nums}
+.dshw-tab[data-active="true"] .dshw-tabnum{color:var(--dsw-cockpit-text-secondary,var(--dsw-alias-label-secondary))}
+.dshw-tabstop{flex:none;font-size:11.5px;opacity:.65}
+.dshw-tab-x{display:inline-flex;align-items:center;justify-content:center;flex:none;width:17px;height:17px;border-radius:5px;opacity:.45;font-size:13px;line-height:1}
+.dshw-tab-x:hover{opacity:1;background:var(--dsw-alias-interactive-bg-hover)}
+.dshw-tab-add{display:inline-flex;align-items:center;justify-content:center;flex:none;width:28px;height:28px;margin-bottom:4px;border:0;border-radius:7px;background:transparent;color:var(--dsw-cockpit-text-secondary,var(--dsw-alias-label-secondary));cursor:pointer}
+.dshw-tab-add:hover{background:var(--dsw-alias-interactive-bg-hover);color:var(--dsw-cockpit-text-primary,var(--dsw-alias-label-primary))}
+.dshw-addmenu{top:34px;right:0}
+.dshw-addmenu-custom{display:flex;gap:6px;padding:5px 3px 1px}
 .dshw-addmenu-custom .dshw-input{min-width:0;flex:1 1 auto}
-.dshw-split{display:flex;flex:1 1 auto;min-height:0}
-.dshw-card{margin:10px 0 10px 20px}
-.dshw-termhead{gap:10px;padding:9px 12px;font-size:13px;border-bottom:0.5px solid var(--dsw-cockpit-border-subtle,var(--dsw-alias-border-l1))}
-.dshw-termhead-label{font-weight:500;color:var(--dsw-alias-label-primary)}
-.dshw-rail{display:flex;flex:0 0 320px;flex-direction:column;gap:14px;width:320px;min-width:0;overflow-y:auto;padding:12px;border-left:0.5px solid var(--dsw-cockpit-border-subtle,var(--dsw-alias-border-l1))}
+
+/* ── terminal card ────────────────────────────────────────────────────── */
+.dshw-card{display:flex;flex-direction:column;flex:1 1 auto;min-height:150px;margin:14px 18px 0;border:0.5px solid var(--dsw-cockpit-border-subtle,var(--dsw-alias-border-l1));border-radius:10px;background:var(--dsw-cockpit-bg-base,var(--dsw-alias-bg-base));overflow:hidden}
+.dshw-termhead{display:flex;align-items:center;gap:9px;flex:none;height:39px;padding:0 8px 0 11px;border-bottom:0.5px solid var(--dsw-cockpit-border-subtle,var(--dsw-alias-border-l1));background:var(--dsw-cockpit-bg-layer-1,var(--dsw-alias-bg-layer-1));font-size:13px}
+.dshw-termhead-label{flex:none;font-weight:600;color:var(--dsw-cockpit-text-primary,var(--dsw-alias-label-primary))}
+.dshw-cwd{display:inline-flex;align-items:center;flex:0 1 auto;min-width:0;height:24px;padding:0 8px;border:0.5px solid var(--dsw-cockpit-border-subtle,var(--dsw-alias-border-l1));border-radius:6px;font-family:var(--ds-font-family-code,ui-monospace,monospace);font-size:11.5px;color:var(--dsw-cockpit-text-muted,var(--dsw-alias-label-caption));overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dshw-stage{flex:1 1 auto;min-height:0;position:relative}
+.dshw-host,.dshw-term{position:absolute;inset:0;padding:8px 10px}
+.dshw-empty{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;padding:18px;color:var(--dsw-cockpit-text-muted,var(--dsw-alias-label-caption));font-size:12.5px;text-align:center}
+.dshw-empty-title{font-size:13.5px;color:var(--dsw-cockpit-text-secondary,var(--dsw-alias-label-secondary))}
+.dshw-err{color:var(--dsw-alias-state-error-primary);font-weight:600}
+
+/* ── shortcut editor ──────────────────────────────────────────────────── */
+.dshw-keys{display:flex;flex-wrap:wrap;gap:9px;align-items:center;flex:none;padding:10px 18px;border-bottom:0.5px solid var(--dsw-cockpit-border-subtle,var(--dsw-alias-border-l1));font-size:12px}
+.dshw-keys label{display:inline-flex;align-items:center;gap:6px}
+.dshw-keys label>span{color:var(--dsw-cockpit-text-muted,var(--dsw-alias-label-caption))}
+.dshw-key{height:27px;min-width:144px;padding:0 8px;border:0.5px solid var(--dsw-cockpit-border-subtle,var(--dsw-alias-border-l1));border-radius:6px;background:transparent;color:inherit;font-size:12px;font-family:inherit}
+.dshw-key[data-invalid="true"]{border-color:var(--dsw-alias-state-error-primary)}
+.dshw-keys-hint{flex:1 1 100%;line-height:1.55;color:var(--dsw-cockpit-text-muted,var(--dsw-alias-label-caption))}
+.dshw-keys-err{color:var(--dsw-alias-state-error-primary);font-weight:600}
+
+/* ── information rail ─────────────────────────────────────────────────── */
+.dshw-rail{display:flex;flex-direction:column;flex:0 0 296px;width:296px;min-width:0;overflow:hidden;border-left:0.5px solid var(--dsw-cockpit-border-subtle,var(--dsw-alias-border-l1))}
+.dshwr-root{display:flex;flex-direction:column;flex:1 1 auto;min-height:0;overflow-y:auto;padding:14px 12px 10px}
+.dshwr-section{display:flex;flex-direction:column;gap:1px;padding-bottom:14px}
+.dshwr-head{display:flex;align-items:center;gap:8px;height:26px;padding:0 6px;margin-bottom:3px;font-size:12.5px;font-weight:600;letter-spacing:0;text-transform:none;color:var(--dsw-cockpit-text-primary,var(--dsw-alias-label-primary))}
+.dshwr-head svg{flex:none;color:var(--dsw-cockpit-text-secondary,var(--dsw-alias-label-secondary))}
+.dshwr-name{display:flex;align-items:center;gap:8px;height:26px;padding:0 6px;font-size:13px;font-weight:500;color:var(--dsw-cockpit-text-primary,var(--dsw-alias-label-primary))}
+.dshwr-path{padding:0 6px 4px 28px;font-family:var(--ds-font-family-code,ui-monospace,monospace);font-size:11.5px;line-height:16px;color:var(--dsw-cockpit-text-muted,var(--dsw-alias-label-caption));overflow-wrap:anywhere}
+.dshwr-row{display:flex;align-items:center;gap:9px;height:27px;padding:0 6px;border-radius:6px;font-size:12.5px;color:var(--dsw-cockpit-text-secondary,var(--dsw-alias-label-secondary))}
+.dshwr-row svg{flex:none;color:var(--dsw-cockpit-text-muted,var(--dsw-alias-label-caption))}
+.dshwr-row[data-hover="true"]:hover{background:var(--dsw-alias-interactive-bg-hover)}
+.dshwr-row-name{min-width:0;flex:1 1 auto;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--dsw-cockpit-text-primary,var(--dsw-alias-label-primary))}
+.dshwr-row[data-clean="true"] .dshwr-row-name{color:var(--dsw-cockpit-success,var(--dsw-alias-state-success-primary))}
+.dshwr-meta{margin-left:auto;flex:none;font-size:11.5px;color:var(--dsw-cockpit-text-muted,var(--dsw-alias-label-caption));font-variant-numeric:tabular-nums}
+.dshwr-empty{padding:0 6px;font-size:12.5px;line-height:24px;color:var(--dsw-cockpit-text-muted,var(--dsw-alias-label-caption))}
+.dshwr-more{align-self:flex-start;height:24px;padding:0 6px;border:0;border-radius:6px;background:transparent;color:var(--dsw-cockpit-accent-primary,#3b82f6);font-size:12px;font-family:inherit;cursor:pointer}
+.dshwr-more:hover{background:var(--dsw-alias-interactive-bg-hover)}
+.dshwr-foot{display:flex;align-items:center;gap:8px;flex:none;height:32px;padding:0 14px;border-top:0.5px solid var(--dsw-cockpit-border-subtle,var(--dsw-alias-border-l1));font-size:11.5px;color:var(--dsw-cockpit-text-muted,var(--dsw-alias-label-caption))}
+.dshwr-foot .dshw-err{font-size:11.5px}
 `
 
 // ── module-scope store ────────────────────────────────────────────────────
@@ -531,6 +565,108 @@ function relativeTime(ms) {
   return `${Math.round(hours / 24)}d`
 }
 
+/** How long a terminal has been alive, in the rail's `12m` / `3h` shorthand. */
+function uptime(startedAt) {
+  const text = relativeTime(startedAt)
+  return text === 'now' ? '0m' : text
+}
+
+/**
+ * The text currently on screen in one terminal, trailing blank lines dropped.
+ * @param term - the xterm instance.
+ * @returns The viewport as plain text.
+ */
+function viewportText(term) {
+  const buffer = term.buffer.active
+  const lines = []
+  for (let row = 0; row < term.rows; row += 1) {
+    const line = buffer.getLine(buffer.viewportY + row)
+    lines.push(line === undefined ? '' : line.translateToString(true))
+  }
+  while (lines.length > 0 && lines[lines.length - 1] === '') lines.pop()
+  return lines.join('\n')
+}
+
+// ── iconography ───────────────────────────────────────────────────────────
+//
+// One 16px stroked set, drawn locally rather than imported: the three baseline
+// externals ship no icon surface this plugin can rely on, and a local table
+// keeps the panel's glyphs consistent with each other at every size.
+
+const GLYPH_PATHS = {
+  folder: 'M3 7.5A1.5 1.5 0 0 1 4.5 6h3.38a1.5 1.5 0 0 1 1.06.44l.62.62A1.5 1.5 0 0 0 10.62 8h4.88A1.5 1.5 0 0 1 17 9.5v7A1.5 1.5 0 0 1 15.5 18h-11A1.5 1.5 0 0 1 3 16.5z',
+  branch: 'M6 3.5v9m0 0a2 2 0 1 0 0 4 2 2 0 0 0 0-4m0-9a2 2 0 1 1 0 4 2 2 0 0 1 0-4m8 0a2 2 0 1 1 0 4 2 2 0 0 1 0-4m0 4c0 3-1.5 4.5-4.5 5',
+  check: 'M4 10.5 8 14.5 16 5.5',
+  chevron: 'M5 8l5 5 5-5',
+  plus: 'M10 4.5v11M4.5 10h11',
+  copy: 'M7.5 7.5V5.2A1.7 1.7 0 0 1 9.2 3.5h5.6A1.7 1.7 0 0 1 16.5 5.2v5.6a1.7 1.7 0 0 1-1.7 1.7h-2.3M5.2 7.5h5.6a1.7 1.7 0 0 1 1.7 1.7v5.6a1.7 1.7 0 0 1-1.7 1.7H5.2a1.7 1.7 0 0 1-1.7-1.7V9.2a1.7 1.7 0 0 1 1.7-1.7z',
+  trash: 'M4 6h12M8 6V4.5h4V6M6 6l.7 9.2A1.4 1.4 0 0 0 8.1 16.5h3.8a1.4 1.4 0 0 0 1.4-1.3L14 6',
+  more: 'M5 10h.01M10 10h.01M15 10h.01',
+  keys: 'M3 6.5h14v7H3zM6 9h.01M9 9h.01M12 9h.01M6.5 11.5h7',
+  file: 'M11 2.8H6.2A1.7 1.7 0 0 0 4.5 4.5v11a1.7 1.7 0 0 0 1.7 1.7h7.6a1.7 1.7 0 0 0 1.7-1.7V7zM11 2.8V7h4.5',
+  terminal: 'M4.5 5.5 8 9l-3.5 3.5M10 14h5.5',
+  send: 'M10 16V4.5M5 9.5 10 4.5l5 5',
+  chat: 'M4 5.7A1.7 1.7 0 0 1 5.7 4h8.6A1.7 1.7 0 0 1 16 5.7v6.1a1.7 1.7 0 0 1-1.7 1.7H8l-4 3z',
+  layers: 'M10 3 3.5 6.3 10 9.6l6.5-3.3zM3.5 10.2 10 13.5l6.5-3.3M3.5 13.9 10 17.2l6.5-3.3',
+  info: 'M10 17a7 7 0 1 0 0-14 7 7 0 0 0 0 14zM10 9.3v4M10 6.8h.01',
+  panel: 'M3.5 5.2A1.7 1.7 0 0 1 5.2 3.5h9.6a1.7 1.7 0 0 1 1.7 1.7v9.6a1.7 1.7 0 0 1-1.7 1.7H5.2a1.7 1.7 0 0 1-1.7-1.7zM12.5 3.5v13',
+}
+
+/**
+ * One glyph from the local table.
+ * @param props.name - key in GLYPH_PATHS.
+ * @param props.size - square edge in px (default 16).
+ * @returns An inline SVG that inherits `currentColor`.
+ */
+function Glyph({ name, size = 16 }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 20 20"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d={GLYPH_PATHS[name]} />
+    </svg>
+  )
+}
+
+/** Two-character mark per preset, so a tab is identifiable before its label. */
+const PRESET_MARKS = {
+  powershell: 'PS',
+  claude: 'AI',
+  codex: 'CX',
+  opencode: 'OC',
+  hermes: 'H',
+  custom: '>_',
+}
+
+/**
+ * The accent-tinted identity tile a preset carries through the tab strip, the
+ * spawn menu and the terminal card header.
+ * @param props.presetId - preset the session was spawned from.
+ * @param props.accent - the preset's accent colour.
+ * @param props.size - square edge in px.
+ * @returns The tile.
+ */
+function PresetMark({ presetId, accent, size = 20 }) {
+  const mark = PRESET_MARKS[presetId] ?? (presetId ?? '?').slice(0, 2).toUpperCase()
+  return (
+    <span
+      className="dshw-glyph"
+      style={{ background: accent ?? '#64748b', width: size, height: size, fontSize: mark.length > 1 ? 9.5 : 11 }}
+      aria-hidden="true"
+    >
+      {mark}
+    </span>
+  )
+}
+
 /**
  * The read-only rail sections, shared by the Workbench's always-visible info
  * column and by the rail tab the plugin registers.
@@ -539,47 +675,68 @@ function RailSections() {
   const projectId = railProjectId()
   const project = state.projects.find((entry) => entry.id === projectId)
   const info = state.projectInfo[projectId]
+  const files = info?.files ?? []
+  const [expanded, setExpanded] = React.useState(false)
+  const shown = expanded ? files : files.slice(0, 5)
   return (
     <>
       <section className="dshwr-section">
-        <span className="dshwr-head">Project Info</span>
-        <div className="dshwr-card">
-          <span className="dshwr-name">{info?.name ?? project?.name ?? 'Working directory'}</span>
-          <span className="dshwr-path">{info?.path ?? project?.path ?? state.defaultCwd ?? ''}</span>
-          <span className="dshwr-pills">
-            {info?.branch != null && <span className="dshwr-pill">{info.branch}</span>}
-            {info?.clean === true && <span className="dshwr-pill" data-clean="true">Clean</span>}
-            {info?.clean === false && (
-              <span className="dshwr-pill">{info.changed} changed</span>
-            )}
-            <span className="dshwr-pill" data-terminals>
-              {state.sessions.length} terminal{state.sessions.length === 1 ? '' : 's'}
+        <span className="dshwr-head"><Glyph name="folder" size={15} />Project Info</span>
+        <span className="dshwr-name">
+          <Glyph name="folder" size={15} />
+          {info?.name ?? project?.name ?? 'Working directory'}
+        </span>
+        <span className="dshwr-path">{info?.path ?? project?.path ?? state.defaultCwd ?? ''}</span>
+        {info?.branch != null && (
+          <div className="dshwr-row">
+            <Glyph name="branch" size={15} />
+            <span className="dshwr-row-name">{info.branch}</span>
+          </div>
+        )}
+        {info?.clean !== undefined && (
+          <div className="dshwr-row" data-clean={info.clean === true}>
+            {info.clean === true
+              ? <span className="dshw-dot" style={{ background: 'var(--dsw-cockpit-success,#22c55e)' }} />
+              : <span className="dshw-dot" style={{ background: 'var(--dsw-cockpit-warning,#f59e0b)' }} />}
+            <span className="dshwr-row-name">
+              {info.clean === true ? 'Clean' : `${info.changed} changed`}
             </span>
-          </span>
-        </div>
+          </div>
+        )}
       </section>
 
       <section className="dshwr-section">
-        <span className="dshwr-head">Recent Files</span>
-        {info === undefined || info.files.length === 0
+        <span className="dshwr-head"><Glyph name="file" size={15} />Recent Files</span>
+        {shown.length === 0
           ? <span className="dshwr-empty">No files read yet.</span>
-          : info.files.map((file) => (
-            <div className="dshwr-row" key={file.name} title={file.name}>
+          : shown.map((file) => (
+            <div className="dshwr-row" data-hover="true" key={file.name} title={file.name}>
+              <Glyph name={file.dir ? 'folder' : 'file'} size={15} />
               <span className="dshwr-row-name">{file.dir ? `${file.name}/` : file.name}</span>
               <span className="dshwr-meta">{relativeTime(file.mtime)}</span>
             </div>
           ))}
+        {files.length > 5 && (
+          <button type="button" className="dshwr-more" onClick={() => setExpanded(open => !open)}>
+            {expanded ? 'Show less' : 'Show more…'}
+          </button>
+        )}
       </section>
 
       <section className="dshwr-section">
-        <span className="dshwr-head">Active Terminals</span>
+        <span className="dshwr-head"><Glyph name="terminal" size={15} />Active Terminals</span>
         {state.sessions.length === 0
           ? <span className="dshwr-empty">No terminals open.</span>
           : state.sessions.map((session) => (
-            <div className="dshwr-row" key={session.id} title={session.cwd}>
-              <span className="dshwr-dot" style={{ background: session.accent }} />
+            <div className="dshwr-row" data-hover="true" key={session.id} title={session.cwd}>
+              <span
+                className="dshw-dot"
+                style={{ background: session.status === 'running' ? session.accent : 'var(--dsw-cockpit-text-muted,#61666b)' }}
+              />
               <span className="dshwr-row-name">{session.label}</span>
-              <span className="dshwr-meta">{session.status}</span>
+              <span className="dshwr-meta">
+                {session.status === 'running' ? uptime(session.startedAt) : 'stopped'}
+              </span>
             </div>
           ))}
       </section>
@@ -631,6 +788,9 @@ function WorkbenchPanel() {
   const [custom, setCustom] = React.useState('')
   const [keysOpen, setKeysOpen] = React.useState(false)
   const [addOpen, setAddOpen] = React.useState(false)
+  const [projectOpen, setProjectOpen] = React.useState(false)
+  const [moreOpen, setMoreOpen] = React.useState(false)
+  const [termMoreOpen, setTermMoreOpen] = React.useState(false)
   const [draft, setDraft] = React.useState(null)
   const [keyErrors, setKeyErrors] = React.useState(null)
 
@@ -663,7 +823,8 @@ function WorkbenchPanel() {
   // main panel, so "while the Workbench is active" is the effect's own lifetime.
   // The runtime guard re-checks visibility and focus ownership per keystroke, so
   // a hidden/shadowed panel, and any text field outside the panel (DSH Chat's
-  // composer), can never lose a keystroke to these bindings.
+  // composer, this panel's own composer), can never lose a keystroke to these
+  // bindings.
   React.useEffect(() => {
     const onKeyDown = createKeyHandler({
       getConfig: () => state.shortcuts,
@@ -696,258 +857,407 @@ function WorkbenchPanel() {
   const project = state.projects.find((entry) => entry.id === projectId)
   const info = state.projectInfo[projectId]
   const projectPath = info?.path ?? project?.path ?? state.defaultCwd ?? ''
+  const projectName = info?.name ?? project?.name ?? 'Working directory'
   const clearActive = () => {
     const record = state.activeId === null ? undefined : records.get(state.activeId)
     if (record !== undefined) record.term.clear()
   }
+  // Copy is a browser-side read of what is already on this user's screen — the
+  // selection, or the visible viewport when nothing is selected. It never asks
+  // the host for scrollback and never leaves the browser except to the
+  // clipboard the user asked for.
+  const copyActive = () => {
+    const record = state.activeId === null ? undefined : records.get(state.activeId)
+    if (record === undefined) return
+    const text = record.term.getSelection() || viewportText(record.term)
+    if (text === '') return
+    void navigator.clipboard?.writeText(text)
+  }
 
   return (
     <div className="dshw-root" ref={rootRef}>
-      <div className="dshw-head">
-        <span className="dshw-head-tile"><WorkbenchIcon size={18} /></span>
-        <span className="dshw-head-text">
-          <span className="dshw-head-title">Workbench</span>
-          <span className="dshw-head-sub">Run your tools. One workspace, all terminals.</span>
-        </span>
-        <span className="dshw-spacer" />
-        <button
-          className="dshw-btn"
-          type="button"
-          aria-expanded={keysOpen}
-          title="Configure the Workbench keyboard shortcuts"
-          onClick={() => {
-            setKeyErrors(null)
-            setDraft(keysOpen ? null : toForm(state.shortcuts))
-            setKeysOpen(!keysOpen)
-          }}
-        >
-          Keys…
-        </button>
-      </div>
-
-      <div className="dshw-toolbar">
-        <span className="dshw-toolbar-label">Project</span>
-        <select
-          className="dshw-select"
-          value={state.activeProjectId ?? ''}
-          onChange={(event) => {
-            state.activeProjectId = event.target.value === '' ? null : event.target.value
-            notify()
-          }}
-          title="Project that new terminals start in"
-        >
-          <option value="">{state.defaultCwd ?? 'default directory'}</option>
-          {state.projects.map((entry) => (
-            <option key={entry.id} value={entry.id}>
-              {entry.name} — {entry.path}
-            </option>
-          ))}
-        </select>
-        <span className="dshw-path" title={projectPath}>{projectPath}</span>
-        {info?.branch != null && <span className="dshw-pill">{info.branch}</span>}
-        {info?.clean === true && <span className="dshw-pill" data-clean="true">Clean</span>}
-        {info?.clean === false && <span className="dshw-pill">{info.changed} changed</span>}
-        <span className="dshw-spacer" />
-        {state.activeProjectId !== null && (
+      <div className="dshw-main">
+        <div className="dshw-head">
+          <span className="dshw-head-tile"><Glyph name="folder" size={20} /></span>
+          <span className="dshw-head-text">
+            <span className="dshw-head-title">Workbench</span>
+            <span className="dshw-head-sub">Run your tools. One workspace, all terminals.</span>
+          </span>
+          <span className="dshw-spacer" />
           <button
-            className="dshw-btn"
+            className="dshw-icon"
             type="button"
-            title="Unregister this project (does not touch the files)"
+            aria-expanded={keysOpen}
+            data-on={keysOpen}
+            title="Configure the Workbench keyboard shortcuts"
+            aria-label="Keyboard shortcuts"
             onClick={() => {
-              send({ t: 'removeProject', id: state.activeProjectId })
-              state.activeProjectId = null
-              notify()
-            }}
-          >
-            Forget
-          </button>
-        )}
-        <button className="dshw-btn" type="button" onClick={() => void pickProject()}>
-          + Add Project
-        </button>
-      </div>
-
-      {keysOpen && (
-        <div className="dshw-keys">
-          {KEY_FIELDS.map((field) => (
-            <label key={field.action}>
-              <span>{field.label}</span>
-              <input
-                className="dshw-key"
-                value={draft?.[field.action] ?? ''}
-                placeholder={field.placeholder}
-                spellCheck={false}
-                data-invalid={keyErrors?.[field.action] !== undefined}
-                title={keyErrors?.[field.action] ?? `${field.placeholder} — comma-separate alternatives`}
-                onChange={(event) =>
-                  setDraft({ ...draft, [field.action]: event.target.value })
-                }
-              />
-            </label>
-          ))}
-          <button
-            className="dshw-btn"
-            type="button"
-            onClick={() => {
-              const parsed = parseForm(draft)
-              if (!parsed.ok) {
-                setKeyErrors(parsed.errors)
-                return
-              }
-              state.shortcuts = normalizeConfig(parsed.config)
-              saveConfig(undefined, state.shortcuts)
               setKeyErrors(null)
-              setKeysOpen(false)
-              setDraft(null)
-              notify()
+              setDraft(keysOpen ? null : toForm(state.shortcuts))
+              setKeysOpen(!keysOpen)
             }}
           >
-            Save
+            <Glyph name="keys" size={17} />
           </button>
-          <button
-            className="dshw-btn"
-            type="button"
-            title="Restore the shipped defaults"
-            onClick={() => {
-              setDraft(toForm(DEFAULT_CONFIG))
-              setKeyErrors(null)
-            }}
-          >
-            Reset
-          </button>
-          <button
-            className="dshw-btn"
-            type="button"
-            onClick={() => {
-              setKeysOpen(false)
-              setDraft(null)
-              setKeyErrors(null)
-            }}
-          >
-            Close
-          </button>
-          <div className="dshw-keys-hint">
-            Mod = Ctrl on Windows/Linux, Cmd on macOS. Comma-separate alternatives. Chromium keeps
-            Ctrl+Tab / Ctrl+Shift+Tab for its own tabs in a normal browser tab — those bindings only
-            arrive when DSH runs as an app window (installed PWA / <code>--app</code>) or fullscreen;
-            Alt+→ / Alt+← always arrive. Switching tabs never touches a running session; saved per
-            browser profile.
-            {keyErrors !== null && (
-              <span className="dshw-keys-err"> Fix the highlighted binding to save.</span>
-            )}
-          </div>
         </div>
-      )}
 
-      <div className="dshw-tabs">
-        {state.sessions.map((session, index) => {
-          const shortcut = hintForIndex(index + 1, state.shortcuts, IS_MAC)
-          return (
+        <div className="dshw-toolbar">
+          <span className="dshw-toolbar-label">Project</span>
+          <span className="dshw-hold">
             <button
-              key={session.id}
               type="button"
-              className="dshw-tab"
-              data-active={session.id === state.activeId}
-              onClick={() => setActive(session.id)}
-              title={`${session.presetId} · pid ${session.pid} · ${session.cwd}${
-                shortcut === null ? '' : ` · ${shortcut}`
-              }`}
+              className="dshw-chip"
+              aria-expanded={projectOpen}
+              title="Project that new terminals start in"
+              onClick={() => { setProjectOpen(open => !open); setMoreOpen(false) }}
             >
-              {shortcut !== null && (
-                <span className="dshw-badge" title={shortcut}>
-                  {index + 1}
-                </span>
-              )}
-              <span className="dshw-dot" style={{ background: session.accent }} />
-              {session.label}
-              {session.status !== 'running' && (
-                <span style={{ opacity: 0.65 }}>
-                  {session.exitCode === null ? 'stopped' : `exit ${session.exitCode}`}
-                </span>
-              )}
-              <span
-                className="dshw-tab-x"
-                role="button"
-                tabIndex={-1}
-                title="Kill and close this terminal"
-                onClick={(event) => {
-                  event.stopPropagation()
-                  send({ t: 'remove', id: session.id })
-                }}
-              >
-                ×
-              </span>
+              <Glyph name="folder" size={15} />
+              <span className="dshw-chip-label">{projectName}</span>
+              <span className="dshw-chev"><Glyph name="chevron" size={13} /></span>
             </button>
-          )
-        })}
-        <div className="dshw-add">
-          <button
-            type="button"
-            className="dshw-tab-add"
-            aria-expanded={addOpen}
-            title="New terminal"
-            onClick={() => { setAddOpen(open => !open) }}
-          >
-            +
-          </button>
-          {addOpen && (
-            <div className="dshw-addmenu" role="menu">
-              {state.presets.filter((preset) => preset.id !== 'custom').map((preset) => (
+            {projectOpen && (
+              <div className="dshw-menu" role="menu" style={{ top: 34, left: 0 }}>
                 <button
-                  key={preset.id}
                   type="button"
                   role="menuitem"
-                  className="dshw-addmenu-item"
-                  disabled={!preset.available}
-                  title={preset.available ? preset.hint : `${preset.command} was not found on PATH`}
-                  onClick={() => { setAddOpen(false); spawnSession(preset.id) }}
+                  className="dshw-menu-item"
+                  onClick={() => { setProjectOpen(false); state.activeProjectId = null; notify() }}
                 >
-                  <span className="dshw-dot" style={{ background: preset.accent }} />
-                  {preset.label}
+                  <Glyph name="folder" size={15} />
+                  {state.defaultCwd ?? 'Default directory'}
                 </button>
-              ))}
-              <div className="dshw-addmenu-custom">
-                <input
-                  className="dshw-input"
-                  value={custom}
-                  placeholder={customPreset?.hint ?? 'Run any installed command…'}
-                  onChange={(event) => setCustom(event.target.value)}
-                  onKeyDown={(event) => {
-                    if (event.key === 'Enter' && custom.trim() !== '') {
-                      setAddOpen(false)
-                      spawnSession('custom', custom.trim())
-                    }
-                  }}
-                />
-                <button
-                  className="dshw-btn"
-                  type="button"
-                  disabled={custom.trim() === ''}
-                  onClick={() => { setAddOpen(false); spawnSession('custom', custom.trim()) }}
-                >
-                  Run
-                </button>
+                {state.projects.map((entry) => (
+                  <button
+                    key={entry.id}
+                    type="button"
+                    role="menuitem"
+                    className="dshw-menu-item"
+                    title={entry.path}
+                    onClick={() => { setProjectOpen(false); state.activeProjectId = entry.id; notify() }}
+                  >
+                    <Glyph name="folder" size={15} />
+                    {entry.name}
+                  </button>
+                ))}
               </div>
-            </div>
+            )}
+          </span>
+          <span className="dshw-path" title={projectPath}>{projectPath}</span>
+          {info?.branch != null && (
+            <span className="dshw-meta" title="Current git branch">
+              <Glyph name="branch" size={14} />
+              {info.branch}
+            </span>
           )}
+          {info?.clean === true && (
+            <span className="dshw-meta" data-clean="true" title="Working tree is clean">
+              <Glyph name="check" size={14} />
+              Clean
+            </span>
+          )}
+          {info?.clean === false && (
+            <span className="dshw-meta" title="Files changed since the last commit">
+              <span className="dshw-dot" style={{ background: 'var(--dsw-cockpit-warning,#f59e0b)' }} />
+              {info.changed} changed
+            </span>
+          )}
+          <span className="dshw-spacer" />
+          <span className="dshw-hold">
+            <button
+              type="button"
+              className="dshw-icon"
+              aria-expanded={moreOpen}
+              aria-label="Project actions"
+              title="Project actions"
+              onClick={() => { setMoreOpen(open => !open); setProjectOpen(false) }}
+            >
+              <Glyph name="more" size={17} />
+            </button>
+            {moreOpen && (
+              <div className="dshw-menu" role="menu" style={{ top: 32, right: 0, minWidth: 220 }}>
+                <button
+                  type="button"
+                  role="menuitem"
+                  className="dshw-menu-item"
+                  disabled={projectPath === ''}
+                  onClick={() => { setMoreOpen(false); void navigator.clipboard?.writeText(projectPath) }}
+                >
+                  <Glyph name="copy" size={15} />
+                  Copy path
+                </button>
+                <button
+                  type="button"
+                  role="menuitem"
+                  className="dshw-menu-item"
+                  onClick={() => { setMoreOpen(false); requestProjectInfo(railProjectId()) }}
+                >
+                  <Glyph name="branch" size={15} />
+                  Refresh git state
+                </button>
+                {state.activeProjectId !== null && (
+                  <>
+                    <div className="dshw-menu-sep" />
+                    <button
+                      type="button"
+                      role="menuitem"
+                      className="dshw-menu-item"
+                      title="Unregister this project (does not touch the files)"
+                      onClick={() => {
+                        setMoreOpen(false)
+                        send({ t: 'removeProject', id: state.activeProjectId })
+                        state.activeProjectId = null
+                        notify()
+                      }}
+                    >
+                      <Glyph name="trash" size={15} />
+                      Forget this project
+                    </button>
+                  </>
+                )}
+              </div>
+            )}
+          </span>
+          <button className="dshw-primary" type="button" onClick={() => void pickProject()}>
+            <Glyph name="plus" size={15} />
+            Add Project
+          </button>
         </div>
-      </div>
 
-      <div className="dshw-split">
+        {keysOpen && (
+          <div className="dshw-keys">
+            {KEY_FIELDS.map((field) => (
+              <label key={field.action}>
+                <span>{field.label}</span>
+                <input
+                  className="dshw-key"
+                  value={draft?.[field.action] ?? ''}
+                  placeholder={field.placeholder}
+                  spellCheck={false}
+                  data-invalid={keyErrors?.[field.action] !== undefined}
+                  title={keyErrors?.[field.action] ?? `${field.placeholder} — comma-separate alternatives`}
+                  onChange={(event) =>
+                    setDraft({ ...draft, [field.action]: event.target.value })
+                  }
+                />
+              </label>
+            ))}
+            <button
+              className="dshw-btn"
+              type="button"
+              onClick={() => {
+                const parsed = parseForm(draft)
+                if (!parsed.ok) {
+                  setKeyErrors(parsed.errors)
+                  return
+                }
+                state.shortcuts = normalizeConfig(parsed.config)
+                saveConfig(undefined, state.shortcuts)
+                setKeyErrors(null)
+                setKeysOpen(false)
+                setDraft(null)
+                notify()
+              }}
+            >
+              Save
+            </button>
+            <button
+              className="dshw-btn"
+              type="button"
+              title="Restore the shipped defaults"
+              onClick={() => {
+                setDraft(toForm(DEFAULT_CONFIG))
+                setKeyErrors(null)
+              }}
+            >
+              Reset
+            </button>
+            <button
+              className="dshw-btn"
+              type="button"
+              onClick={() => {
+                setKeysOpen(false)
+                setDraft(null)
+                setKeyErrors(null)
+              }}
+            >
+              Close
+            </button>
+            <div className="dshw-keys-hint">
+              Mod = Ctrl on Windows/Linux, Cmd on macOS. Comma-separate alternatives. Chromium keeps
+              Ctrl+Tab / Ctrl+Shift+Tab for its own tabs in a normal browser tab — those bindings only
+              arrive when DSH runs as an app window (installed PWA / <code>--app</code>) or fullscreen;
+              Alt+→ / Alt+← always arrive. Switching tabs never touches a running session; saved per
+              browser profile.
+              {keyErrors !== null && (
+                <span className="dshw-keys-err"> Fix the highlighted binding to save.</span>
+              )}
+            </div>
+          </div>
+        )}
+
+        <div className="dshw-tabrow">
+          <div className="dshw-tabs">
+          {state.sessions.map((session, index) => {
+            const shortcut = hintForIndex(index + 1, state.shortcuts, IS_MAC)
+            return (
+              <button
+                key={session.id}
+                type="button"
+                className="dshw-tab"
+                data-active={session.id === state.activeId}
+                onClick={() => setActive(session.id)}
+                title={`${session.presetId} · pid ${session.pid} · ${session.cwd}${
+                  shortcut === null ? '' : ` · ${shortcut}`
+                }`}
+              >
+                <PresetMark presetId={session.presetId} accent={session.accent} />
+                {shortcut !== null && (
+                  <span className="dshw-tabnum" title={shortcut}>{index + 1}</span>
+                )}
+                {session.label}
+                {session.status !== 'running' && (
+                  <span className="dshw-tabstop">
+                    {session.exitCode === null ? 'stopped' : `exit ${session.exitCode}`}
+                  </span>
+                )}
+                <span
+                  className="dshw-tab-x"
+                  role="button"
+                  tabIndex={-1}
+                  title="Kill and close this terminal"
+                  onClick={(event) => {
+                    event.stopPropagation()
+                    send({ t: 'remove', id: session.id })
+                  }}
+                >
+                  ×
+                </span>
+              </button>
+            )
+          })}
+          </div>
+          <span className="dshw-hold">
+            <button
+              type="button"
+              className="dshw-tab-add"
+              aria-expanded={addOpen}
+              aria-label="New terminal"
+              title="New terminal"
+              onClick={() => { setAddOpen(open => !open) }}
+            >
+              <Glyph name="plus" size={17} />
+            </button>
+            {addOpen && (
+              <div className="dshw-menu dshw-addmenu" role="menu">
+                {state.presets.filter((preset) => preset.id !== 'custom').map((preset) => (
+                  <button
+                    key={preset.id}
+                    type="button"
+                    role="menuitem"
+                    className="dshw-menu-item"
+                    disabled={!preset.available}
+                    title={preset.available ? preset.hint : `${preset.command} was not found on PATH`}
+                    onClick={() => { setAddOpen(false); spawnSession(preset.id) }}
+                  >
+                    <PresetMark presetId={preset.id} accent={preset.accent} size={18} />
+                    {preset.label}
+                  </button>
+                ))}
+                <div className="dshw-menu-sep" />
+                <div className="dshw-addmenu-custom">
+                  <input
+                    className="dshw-input"
+                    value={custom}
+                    placeholder={customPreset?.hint ?? 'Run any installed command…'}
+                    onChange={(event) => setCustom(event.target.value)}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter' && custom.trim() !== '') {
+                        setAddOpen(false)
+                        spawnSession('custom', custom.trim())
+                      }
+                    }}
+                  />
+                  <button
+                    className="dshw-btn"
+                    type="button"
+                    disabled={custom.trim() === ''}
+                    onClick={() => { setAddOpen(false); spawnSession('custom', custom.trim()) }}
+                  >
+                    Run
+                  </button>
+                </div>
+              </div>
+            )}
+          </span>
+        </div>
+
         <div className="dshw-card">
           {active !== undefined && (
             <div className="dshw-termhead">
-              <span className="dshw-dot" style={{ background: active.accent }} />
+              <PresetMark presetId={active.presetId} accent={active.accent} size={19} />
               <span className="dshw-termhead-label">{active.label}</span>
               <span className="dshw-cwd" title={active.cwd}>{active.cwd}</span>
               <span className="dshw-spacer" />
-              <button className="dshw-btn" type="button" onClick={clearActive}>Clear</button>
+              <button className="dshw-text" type="button" onClick={clearActive}>Clear</button>
+              <button
+                className="dshw-icon"
+                type="button"
+                aria-label="Copy the selection"
+                title="Copy the current selection"
+                onClick={copyActive}
+              >
+                <Glyph name="copy" size={16} />
+              </button>
+              <span className="dshw-hold">
+                <button
+                  className="dshw-icon"
+                  type="button"
+                  aria-expanded={termMoreOpen}
+                  aria-label="Terminal actions"
+                  title="Terminal actions"
+                  onClick={() => setTermMoreOpen(open => !open)}
+                >
+                  <Glyph name="more" size={17} />
+                </button>
+                {termMoreOpen && (
+                  <div className="dshw-menu" role="menu" style={{ top: 32, right: 0, minWidth: 210 }}>
+                    <button
+                      type="button"
+                      role="menuitem"
+                      className="dshw-menu-item"
+                      onClick={() => { setTermMoreOpen(false); send({ t: 'restart', id: active.id }) }}
+                    >
+                      <Glyph name="terminal" size={15} />
+                      Restart in the same directory
+                    </button>
+                    <button
+                      type="button"
+                      role="menuitem"
+                      className="dshw-menu-item"
+                      onClick={() => { setTermMoreOpen(false); void navigator.clipboard?.writeText(active.cwd) }}
+                    >
+                      <Glyph name="copy" size={15} />
+                      Copy working directory
+                    </button>
+                    <div className="dshw-menu-sep" />
+                    <button
+                      type="button"
+                      role="menuitem"
+                      className="dshw-menu-item"
+                      onClick={() => { setTermMoreOpen(false); send({ t: 'remove', id: active.id }) }}
+                    >
+                      <Glyph name="trash" size={15} />
+                      Kill this terminal
+                    </button>
+                  </div>
+                )}
+              </span>
             </div>
           )}
           <div className="dshw-stage" ref={stageRef}>
             {state.sessions.length === 0 && (
               <div className="dshw-empty">
-                <div>No terminals yet.</div>
+                <div className="dshw-empty-title">No terminals yet.</div>
                 <div>
                   Choose a project, then open PowerShell, Claude Code, Codex, OpenCode or Hermes —
                   each runs as its own real CLI in that directory.
@@ -956,27 +1266,34 @@ function WorkbenchPanel() {
             )}
           </div>
         </div>
-        <aside className="dshw-rail" aria-label="Project information">
-          <RailSections />
-        </aside>
       </div>
 
-      <div className="dshw-status">
-        <span>
-          {state.status === 'open'
-            ? 'connected'
-            : state.status === 'connecting'
-              ? 'connecting…'
-              : 'disconnected — retrying'}
-        </span>
-        <span>{state.sessions.length} terminal(s)</span>
-        {state.platform !== null && <span>{state.platform}</span>}
-        <span title="dsh-workbench version">v{VERSION}</span>
-        <span title={`Active shortcuts — ${summarize(state.shortcuts, IS_MAC)}`}>
-          keys {summarize(state.shortcuts, IS_MAC).split(' · ')[0]}
-        </span>
-        {state.error !== null && <span className="dshw-err">{state.error}</span>}
-      </div>
+      <aside className="dshw-rail" aria-label="Project information">
+        <div className="dshwr-root">
+          <RailSections />
+        </div>
+        <div className="dshwr-foot">
+          <span
+            className="dshw-dot"
+            style={{
+              background: state.status === 'open'
+                ? 'var(--dsw-cockpit-success,#22c55e)'
+                : 'var(--dsw-cockpit-warning,#f59e0b)',
+            }}
+          />
+          <span>
+            {state.status === 'open'
+              ? 'Connected'
+              : state.status === 'connecting'
+                ? 'Connecting…'
+                : 'Reconnecting…'}
+          </span>
+          <span className="dshw-spacer" />
+          {state.platform !== null && <span>{state.platform}</span>}
+          <span title={`Active shortcuts — ${summarize(state.shortcuts, IS_MAC)}`}>v{VERSION}</span>
+          {state.error !== null && <span className="dshw-err" title={state.error}>!</span>}
+        </div>
+      </aside>
     </div>
   )
 }
