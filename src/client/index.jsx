@@ -16,7 +16,7 @@ import { FitAddon } from '@xterm/addon-fit'
 import { Terminal } from '@xterm/xterm'
 import xtermCss from '@xterm/xterm/css/xterm.css'
 import * as React from 'react'
-import { UtilityPanel, UTILITY_PANEL_CSS } from './utility-panel.jsx'
+import { FilesWorkspace, UtilityPanel, UTILITY_PANEL_CSS } from './utility-panel.jsx'
 
 import {
   DEFAULT_CONFIG,
@@ -43,10 +43,6 @@ import {
 export const inject = ['slots']
 
 const PANEL_ID = 'workbench'
-const RAIL_TYPE_ID = 'dsh-workbench/rail'
-/** The rail tab type's registry kind: `openTab` and `active().kind` address this,
- * while `RAIL_TYPE_ID` is the definition id and the keyed body-seat key. */
-const RAIL_KIND = 'workbench-rail'
 /** Sentinel project id the host maps to its own working directory. */
 const DEFAULT_PROJECT_ID = 'workbench-default'
 const WS_PATH = '/x/workbench/ws'
@@ -812,6 +808,28 @@ function WorkbenchRail() {
   )
 }
 
+/**
+ * The companion's Files tab: the human project file manager and editor over
+ * the confined host file service. It resolves only registered project ids and
+ * exposes no PTY handle or terminal content to the DSH model.
+ */
+function WorkbenchFiles() {
+  const [, forceRender] = React.useReducer((count) => count + 1, 0)
+  React.useEffect(() => subscribe(forceRender), [])
+  return (
+    <div className="dshw-rail-files" data-workbench-files>
+      <FilesWorkspace
+        variant="rail"
+        projectId={railProjectId()}
+        connectionState={state.status}
+        listFiles={listProjectFiles}
+        readFile={readProjectFile}
+        writeFile={writeProjectFile}
+      />
+    </div>
+  )
+}
+
 function WorkbenchIcon(props) {
   const size = typeof props?.size === 'number' ? props.size : 20
   const active = props?.active === true
@@ -1312,13 +1330,7 @@ function WorkbenchPanel() {
           </div>
         </div>
 
-        <UtilityPanel
-          projectId={projectId}
-          connectionState={state.status}
-          listFiles={listProjectFiles}
-          readFile={readProjectFile}
-          writeFile={writeProjectFile}
-        />
+        <UtilityPanel />
       </div>
     </div>
   )
@@ -1328,10 +1340,13 @@ function CockpitNavigation({ wide, destination, usePanelInfo }) {
   const rail = pluginCtx?.get('sidebarRight')
   const mode = React.useSyncExternalStore(
     React.useCallback(listener => rail?.subscribe(listener) ?? (() => {}), [rail]),
-    React.useCallback(() => rail?.companionMode() ?? 'context', [rail]),
+    React.useCallback(() => rail?.companionMode() ?? 'tabs', [rail]),
   )
   const workbenchActive = usePanelInfo(info => info.activePanelId === PANEL_ID)
-  const active = workbenchActive && (destination === 'workbench' ? mode === 'context' : mode === destination)
+  // The Workbench row selects the companion's Home tab; Chat and Trajectory
+  // name their own tabs. Every row keeps the centre panel on the Workbench.
+  const companion = destination === 'workbench' ? 'home' : destination
+  const active = workbenchActive && mode === companion
   const label = destination === 'workbench' ? 'Workbench' : destination === 'chat' ? 'Chat' : 'Trajectory'
   const glyph = destination === 'workbench' ? 'terminal' : destination === 'chat' ? 'chat' : 'layers'
   return (
@@ -1345,10 +1360,7 @@ function CockpitNavigation({ wide, destination, usePanelInfo }) {
       title={wide ? undefined : label}
       onClick={() => {
         try { pluginCtx?.get('layout')?.selectPanel(PANEL_ID) } catch {}
-        rail?.openCompanion(destination === 'workbench' ? 'context' : destination)
-        if (destination === 'workbench') {
-          try { rail?.openTab(RAIL_KIND) } catch {}
-        }
+        rail?.openCompanion(companion)
       }}
     >
       <Glyph name={glyph} size={wide ? 16 : 18} />
@@ -1413,63 +1425,28 @@ export function apply(ctx) {
     }
   })
 
-  // Contextual rail: a read-only tab registered through the same public path
-  // any other rail type uses. It carries only facts this plugin already owns,
-  // so the rail learns nothing Workbench-specific and the DSH model gains no
-  // handle to any terminal.
-  ctx.inject(['sidebarRightTabs', 'sidebarRight', 'slots'], (scope) => {
-    const tabs = scope.get('sidebarRightTabs')
+  // Companion rail: Home (Active Terminals today, future Suggestions) and Files
+  // are Workbench-owned bodies registered into the fork's companion seats. No
+  // dockkit tab type is registered, so the rail's four tabs are the same for
+  // every cockpit action and the model gains no handle to a terminal.
+  ctx.inject(['sidebarRight', 'slots'], (scope) => {
     const sidebarRight = scope.get('sidebarRight')
     const railSlots = scope.get('slots')
-    const disposeType = tabs.register({
-      id: RAIL_TYPE_ID,
-      kind: RAIL_KIND,
-      title: () => 'Context',
-      guide: [{
-        order: 40,
-        title: () => 'Context',
-        description: () => 'Active human Workbench terminal sessions.',
-      }],
-    })
-    const disposeBody = railSlots.inject('sidebar.right.pane.tab', () => railSlots.register(
-      { name: 'sidebar.right.pane.tab', key: RAIL_TYPE_ID },
+    const disposeHome = railSlots.inject('rightbar.home', () => railSlots.register(
+      { name: 'rightbar.home' },
       () => <WorkbenchRail />,
     ))
-    let opened = false
-    let attempts = 0
-    let retryTimer = null
-    let disposeReady = () => {}
-    const openInitialContext = () => {
-      if (opened) return
-      if (sidebarRight.active()?.kind === RAIL_KIND) {
-        opened = true
-        if (retryTimer !== null) clearInterval(retryTimer)
-        disposeReady()
-        return
-      }
-      try {
-        sidebarRight.openTab(RAIL_KIND)
-      } catch {}
-    }
-    disposeReady = sidebarRight.subscribe(openInitialContext)
-    sidebarRight.openCompanion('context')
-    queueMicrotask(openInitialContext)
-    // The session-scoped right seat can mount after this global plugin. Retry
-    // for one short boot window; page tabs deduplicate, and the timer stops as
-    // soon as the real Context tab is active. No user action is replayed later.
-    retryTimer = setInterval(() => {
-      attempts += 1
-      openInitialContext()
-      if (opened || attempts >= 50) {
-        clearInterval(retryTimer)
-        retryTimer = null
-      }
-    }, 100)
+    const disposeFiles = railSlots.inject('rightbar.files', () => railSlots.register(
+      { name: 'rightbar.files' },
+      () => <WorkbenchFiles />,
+    ))
+    // A fresh Workbench load opens the companion on Chat: Workbench centre, DSH
+    // Chat right. A selection that arrives before the session seat mounts is
+    // retained by the controller and consumed when it binds.
+    sidebarRight.openCompanion('chat')
     scope.effect(() => () => {
-      if (retryTimer !== null) clearInterval(retryTimer)
-      disposeReady()
-      disposeBody()
-      disposeType()
+      disposeFiles()
+      disposeHome()
     })
   })
 

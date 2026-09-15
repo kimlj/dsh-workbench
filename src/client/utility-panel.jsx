@@ -6,7 +6,7 @@ const TAB_KEY = 'dsh-workbench.utility.tab.v1'
 const DEFAULT_HEIGHT = 244
 const MIN_HEIGHT = 150
 const MAX_HEIGHT = 540
-const TABS = ['files', 'activity', 'problems', 'output']
+const TABS = ['activity', 'problems', 'output']
 
 function storageNumber(key, fallback) {
   try {
@@ -31,9 +31,9 @@ function storageBoolean(key, fallback) {
 function storageTab() {
   try {
     const value = localStorage.getItem(TAB_KEY)
-    return TABS.includes(value) ? value : 'files'
+    return TABS.includes(value) ? value : 'activity'
   } catch {
-    return 'files'
+    return 'activity'
   }
 }
 
@@ -45,10 +45,14 @@ function remember(key, value) {
   }
 }
 
+/** Stable no-op default so an omitted setter never re-triggers the reset effect. */
+const NOOP = () => {}
+
 function Icon({ name }) {
   const paths = {
     chevron: 'M5 7.5 10 12.5l5-5',
     close: 'M5 5l10 10M15 5 5 15',
+    back: 'M12.5 5 7.5 10l5 5',
     collapse: 'M4 8l6 6 6-6',
     expand: 'M7 3H3v4M13 3h4v4M7 17H3v-4M13 17h4v-4',
     restore: 'M7 5H4.5A1.5 1.5 0 0 0 3 6.5v9A1.5 1.5 0 0 0 4.5 17h9A1.5 1.5 0 0 0 15 15.5V13M7 3h10v10H7z',
@@ -108,10 +112,14 @@ function DirectoryRows({ path, depth, directories, toggleDirectory, openFile }) 
   ))
 }
 
-function FilesWorkspace({ projectId, connectionState, listFiles, readFile, writeFile, maximized, setMaximized }) {
+export function FilesWorkspace({ projectId, connectionState, listFiles, readFile, writeFile, variant = 'panel', maximized = false, setMaximized = NOOP }) {
   const [directories, setDirectories] = React.useState({})
   const [tabs, setTabs] = React.useState([])
   const [activePath, setActivePath] = React.useState(null)
+  // Rail variant only: narrow widths show the tree OR the open editor, never a
+  // split too small to use. `showTree` is the Back control's state; the panel
+  // variant ignores it and always draws both columns.
+  const [showTree, setShowTree] = React.useState(true)
 
   const loadDirectory = React.useCallback((path, open = true) => {
     setDirectories(current => ({
@@ -134,6 +142,7 @@ function FilesWorkspace({ projectId, connectionState, listFiles, readFile, write
     setDirectories({})
     setTabs([])
     setActivePath(null)
+    setShowTree(true)
     setMaximized(false)
     loadDirectory('')
   }, [projectId, connectionState, loadDirectory, setMaximized])
@@ -148,6 +157,7 @@ function FilesWorkspace({ projectId, connectionState, listFiles, readFile, write
   }, [directories, loadDirectory])
 
   const openFile = React.useCallback((path) => {
+    setShowTree(false)
     if (tabs.some(tab => tab.path === path)) {
       setActivePath(path)
       return
@@ -173,7 +183,7 @@ function FilesWorkspace({ projectId, connectionState, listFiles, readFile, write
     const next = tabs.filter(tab => tab.path !== path)
     setTabs(next)
     if (activePath === path) setActivePath(next[Math.min(index, next.length - 1)]?.path ?? null)
-    if (next.length === 0) setMaximized(false)
+    if (next.length === 0) { setMaximized(false); setShowTree(true) }
   }
 
   const saveActive = () => {
@@ -192,7 +202,11 @@ function FilesWorkspace({ projectId, connectionState, listFiles, readFile, write
   }
 
   return (
-    <div className="dshw-files">
+    <div
+      className="dshw-files"
+      data-variant={variant}
+      data-view={variant === 'panel' ? 'split' : (active === undefined || showTree ? 'tree' : 'editor')}
+    >
       <aside className="dshw-tree" aria-label="Project files">
         <div className="dshw-tree-title">PROJECT TREE</div>
         <div className="dshw-tree-scroll">
@@ -202,6 +216,18 @@ function FilesWorkspace({ projectId, connectionState, listFiles, readFile, write
       </aside>
       <section className="dshw-editor">
         <div className="dshw-editor-tabs" role="tablist">
+          {variant === 'rail' ? (
+            <button
+              className="dshw-editor-back"
+              type="button"
+              title="Back to the project tree"
+              aria-label="Back to the project tree"
+              onClick={() => setShowTree(true)}
+            >
+              <Icon name="back" />
+              <span>Files</span>
+            </button>
+          ) : null}
           <div className="dshw-editor-tabscroll">
             {tabs.map(tab => (
               <button
@@ -229,9 +255,11 @@ function FilesWorkspace({ projectId, connectionState, listFiles, readFile, write
           <button className="dshw-util-icon" type="button" disabled={active === undefined || active.content === active.savedContent || active.saving} aria-label="Save file" title="Save file" onClick={saveActive}>
             <Icon name="save" />
           </button>
-          <button className="dshw-util-icon" type="button" disabled={active === undefined} aria-label={maximized ? 'Restore editor' : 'Maximize editor'} title={maximized ? 'Restore editor' : 'Maximize editor'} onClick={() => setMaximized(value => !value)}>
-            <Icon name={maximized ? 'restore' : 'expand'} />
-          </button>
+          {variant === 'panel' ? (
+            <button className="dshw-util-icon" type="button" disabled={active === undefined} aria-label={maximized ? 'Restore editor' : 'Maximize editor'} title={maximized ? 'Restore editor' : 'Maximize editor'} onClick={() => setMaximized(value => !value)}>
+              <Icon name={maximized ? 'restore' : 'expand'} />
+            </button>
+          ) : null}
         </div>
         {active === undefined
           ? <EmptyState title="Open a file from the project tree." />
@@ -266,8 +294,9 @@ function FilesWorkspace({ projectId, connectionState, listFiles, readFile, write
   )
 }
 
-/** Reusable resizable Workbench utility panel. */
-export function UtilityPanel({ projectId, connectionState, listFiles, readFile, writeFile }) {
+/** Reusable resizable Workbench bottom utility panel: deterministic operational
+ * tabs only. Project Files live in the companion rail's Files tab. */
+export function UtilityPanel() {
   const [tab, setTab] = React.useState(storageTab)
   const [height, setHeight] = React.useState(() => Math.min(MAX_HEIGHT, Math.max(MIN_HEIGHT, storageNumber(HEIGHT_KEY, DEFAULT_HEIGHT))))
   const [collapsed, setCollapsed] = React.useState(() => storageBoolean(COLLAPSED_KEY, false))
@@ -341,17 +370,7 @@ export function UtilityPanel({ projectId, connectionState, listFiles, readFile, 
       </div>
       {collapsed ? null : (
         <div className="dshw-util-content">
-          {tab === 'files' ? (
-            <FilesWorkspace
-              projectId={projectId}
-              connectionState={connectionState}
-              listFiles={listFiles}
-              readFile={readFile}
-              writeFile={writeFile}
-              maximized={maximized}
-              setMaximized={setMaximized}
-            />
-          ) : tab === 'activity'
+          {tab === 'activity'
             ? <EmptyState title="No recorded activity." detail="This panel will show deterministic project and process events when a reliable event source is available." />
             : tab === 'problems'
               ? <EmptyState title="No diagnostics." detail="Typecheck, lint, test, and build diagnostics appear only when a real diagnostic source is connected." />
@@ -409,4 +428,20 @@ export const UTILITY_PANEL_CSS = `
 .dshw-editor-body textarea{box-sizing:border-box;flex:1;min-width:0;min-height:0;padding:10px 12px;border:0;outline:0;resize:none;background:var(--dsw-cockpit-bg-base,var(--dsw-alias-bg-base));color:var(--dsw-cockpit-text-primary,var(--dsw-alias-label-primary));font:12px/18px var(--ds-font-family-code,"Cascadia Mono",Consolas,monospace);tab-size:2;white-space:pre}
 .dshw-editor-status{display:flex;justify-content:space-between;gap:12px;flex:none;height:23px;padding:0 9px;border-top:.5px solid var(--dsw-cockpit-border-subtle,var(--dsw-alias-border-l1));color:var(--dsw-cockpit-text-muted,var(--dsw-alias-label-caption));font-size:10.5px;line-height:23px}
 .dshw-editor-status span:first-child{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* ── Files in the companion rail ─────────────────────────────────────────── */
+.dshw-rail-files{display:flex;flex:1;min-width:0;min-height:0;container-type:inline-size}
+.dshw-files[data-variant="rail"]{display:flex;flex:1;flex-direction:column;min-height:0}
+.dshw-files[data-variant="rail"] .dshw-tree{flex:1;min-height:0;border-right:0}
+.dshw-files[data-variant="rail"] .dshw-editor{flex:1;min-height:0}
+.dshw-files[data-variant="rail"][data-view="tree"] .dshw-editor{display:none}
+.dshw-files[data-variant="rail"][data-view="editor"] .dshw-tree{display:none}
+.dshw-editor-back{display:inline-flex;align-items:center;gap:3px;flex:none;height:31px;padding:0 8px 0 6px;border:0;border-right:.5px solid var(--dsw-cockpit-border-subtle,var(--dsw-alias-border-l1));background:transparent;color:var(--dsw-cockpit-text-secondary,var(--dsw-alias-label-secondary));font:inherit;font-size:11.5px;cursor:pointer}
+.dshw-editor-back:hover{background:var(--dsw-alias-interactive-bg-hover);color:var(--dsw-cockpit-text-primary,var(--dsw-alias-label-primary))}
+.dshw-editor-back svg{width:13px;height:13px}
+/* Wide enough for a real split: the tree stays visible beside the editor. */
+@container (min-width: 560px){
+.dshw-files[data-variant="rail"]{display:grid;grid-template-columns:minmax(150px,210px) minmax(0,1fr)}
+.dshw-files[data-variant="rail"][data-view] .dshw-tree{display:flex;border-right:.5px solid var(--dsw-cockpit-border-subtle,var(--dsw-alias-border-l1))}
+.dshw-files[data-variant="rail"][data-view] .dshw-editor{display:flex}
+}
 `
