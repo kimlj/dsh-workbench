@@ -64,12 +64,13 @@ Built and installed into the `web` profile. Two different reload rules apply:
 ```
 browser                                    host (Node)
 ┌───────────────────────────────┐          ┌──────────────────────────────────┐
-│ sidebar.panellist → "Workbench"│          │ workbench row                    │
-│ main[workbench] → panel        │          │  ctx.webServer.registerUpgrade   │
-│  · project selector            │   ws     │   /x/workbench/ws                │
-│  · preset buttons              │ ◄──────► │  · ctx.connection.requestRejection│
-│  · tab bar                     │          │    (401/403, fails closed)       │
+│ sidebar.navigation → companion │          │ workbench row                    │
+│   (Chat/Trajectory/Workbench)  │          │  ctx.webServer.registerUpgrade   │
+│ main[workbench] → panel        │   ws     │   /x/workbench/ws                │
+│  · project toolbar             │ ◄──────► │  · ctx.connection.requestRejection│
+│  · preset tabs + terminal card │          │    (401/403, fails closed)       │
 │  · xterm.js per session        │          │  WorkbenchRegistry               │
+│  · utility panel (Files/…)     │          │   · node-pty per session         │
 └───────────────────────────────┘          │   · node-pty per session         │
                                            │   · ring-buffer scrollback       │
                                            │   · kill + taskkill /T /F        │
@@ -102,50 +103,59 @@ switching to the Conversation panel and back does not destroy live sessions.
   fallback.
 * node-pty's `win32-x64` prebuilds ship in the package — no build toolchain.
 
-## Cockpit presentation and contextual rail
+## Cockpit presentation, companion drawer, and utility panel
 
 The panel is a two-column surface of its own, composed to the cockpit reference
 on the fork's `--dsw-cockpit-*` / `--dsw-*` tokens. The working column carries a
-header (accent tile, `Workbench`, subtitle), a project toolbar (a chip menu over
-the registered projects, the absolute path, the git branch and tree state, an
-overflow with Copy path / Refresh / Forget, and Add Project), a tab strip whose
-tabs carry each preset's accent mark and slot number with a pinned `+`, the
-terminal card with its own header (preset mark, label, working-directory chip,
-Clear, Copy, and an overflow with Restart and Kill), and the dock. Beside it runs
-a full-height information rail. Presets, spawn/kill/restart, the keymap,
-scrollback, and project registration are unchanged.
+compact header, a project toolbar (a chip menu over the registered projects, the
+absolute path, the git branch and tree state, an overflow with Copy path /
+Refresh / Forget, and Add Project), a tab strip whose tabs carry each preset's
+accent mark and slot number with a pinned `+`, and the terminal card with its own
+header (preset mark, label, working-directory chip, Clear, Copy, and an overflow
+with Restart and Kill). Presets, spawn/kill/restart, the keymap, scrollback, and
+project registration are unchanged.
 
-### The dock
+The plugin registers **Chat / Trajectory / Workbench** rows into the fork's
+`sidebar.navigation` seat. Chat and Trajectory open the native DSH conversation in
+the right companion drawer — the same Conversation tree, composer, attachments,
+permissions, and model/effort controls the fork hosts — without unmounting the
+Workbench, so a running PTY is never restarted by a mode switch. Where the
+companion capability is absent the plugin registers nothing and stock behaviour
+stands.
 
-Under the terminal card, a `Chat` / `Context` pair. The composer sends
-**user-authored text only** into the currently selected DSH Session's
-Conversation, through the documented scope-addressed path
-`ctx.sessions.scope(id).conversation.send`, then switches to the Conversation so
-the turn is visible where it happens. With no session open the target chip says
-so and the composer is disabled.
+### The bottom utility panel
 
-The five prompt chips prefill the composer and send nothing. The `Context` tab
-lists project facts — name, path, branch, tree state, terminal count — and its
-one action appends them to the message as text you can read and edit first.
-**No terminal output is ever read, quoted or attached**; see the security model.
+The old bottom Chat/Context dock is gone. Its footprint is a generic, vertically
+resizable and collapsible utility panel: `Files | Activity | Problems | Output`.
+It remembers its height, collapsed state, and selected tab per browser profile.
+The terminal keeps approximately its previous height in the normal expanded
+layout and only grows when the panel is deliberately collapsed.
 
-The plugin also registers one **read-only contextual rail tab** (`Project Info`)
-through the same public rail path any other type uses — `ctx.sidebarRightTabs.register`
-plus the keyed `sidebar.right.pane.tab` seat — so the rail learns nothing
-Workbench-specific and the plugin stays an ordinary rail contributor.
+`Files` is the one populated capability — a project-root tree beside a textarea
+editor with editor tabs, dirty state, explicit Save, external-modification
+detection, and maximize/restore (which keeps the PTYs mounted). `Activity`,
+`Problems`, and `Output` are deliberate empty states: no deterministic event,
+diagnostic, or task-output feed exists yet, so nothing is fabricated to fill them.
 
-| Section | Source (real data only) |
-|---|---|
-| Project Info | the selected project, or the host working directory: name, absolute path, git branch, clean/changed, terminal count |
-| Recent Files | the most recently modified top-level entries of that directory |
-| Quick Actions | the applications DSH's own `ctx.openInApp` reports the host probed as installed, opening the project directory in one of them; absent when the service, the app list, or the path is |
-| Active Terminals | the live registry: label, preset colour, and uptime from `startedAt` |
+### The Context rail
 
-Git state and file listings are read **read-only** by the host over an additive
-`projectInfo` WebSocket message. The host resolves only project ids **it**
-registered, or its own working directory — never a client-supplied path — and the
-reply carries **no process environment and no terminal content**. No PTY handle,
-scrollback, or terminal output is exposed to the DSH model or to the rail.
+Beside the panel runs a full-height information rail, presented through the
+fork's native companion column rather than a plugin-drawn `<aside>`. Its tab
+shows only **Active Terminals**, read from the live registry — label, preset
+colour, and uptime. The previous Project Info, Recent Files, and Quick Actions
+sections were removed: project identity now lives once, in the Workbench header,
+and project files belong to the bottom `Files` panel. The freed rail space is
+intentionally empty; it is reserved for a future evidence-backed intelligence
+surface that is not implemented here.
+
+Git state is read **read-only** by the host over an additive `projectInfo`
+WebSocket message, and project files over additive `fileList` / `fileRead` /
+`fileWrite` messages. The host resolves only project ids **it** registered, or
+its own working directory — never a client-supplied path — and the replies carry
+**no process environment and no terminal content**. The file service realpaths
+the registered root, rejects lexical (`..`) and symlink escapes, bounds reads to
+2 MiB of UTF-8, and version-checks every save. No PTY handle, scrollback, or
+terminal output is exposed to the DSH model or to the rail.
 
 ## Keyboard navigation (V1.1)
 
@@ -294,8 +304,8 @@ pnpm dsh web --no-open --port 3091   # prints http://127.0.0.1:3091/?token=…
 ```
 
 Open the printed URL once (the token sets the signed browser cookie). The
-`Workbench` entry then appears in the sidebar, and its `Project Info` rail tab is
-available from the right rail's add control.
+`Workbench` row then appears in the sidebar's navigation cluster, and its
+`Context` tab (Active Terminals) is available from the right companion column.
 
 ## Build
 
@@ -339,12 +349,15 @@ whenever the browser half changes.
 |---|---|
 | `package.json` | `dsh.bundle.patch` + `dsh.client` declarations, exports, deps |
 | `cordis.patch.yml` | the one host row this bundle inserts |
-| `src/host/index.js` | Cordis host plugin: authenticated upgrade route, wire protocol, read-only `projectInfo` |
-| `src/host/session.js` | `WorkbenchRegistry`: PTY lifecycle, scrollback, kill, projects, read-only project metadata |
+| `src/host/index.js` | Cordis host plugin: authenticated upgrade route, wire protocol, read-only `projectInfo`, and the `fileList` / `fileRead` / `fileWrite` file messages |
+| `src/host/session.js` | `WorkbenchRegistry`: PTY lifecycle, scrollback, kill, projects, read-only project metadata, project-root resolution for the file service |
+| `src/host/project-files.js` | confined project file service: realpath-checked root, bounded UTF-8 reads, version-checked saves |
 | `src/host/presets.js` | preset catalogue + Windows executable/shim resolution |
-| `src/client/index.jsx` | cockpit presentation, panel, tabs, project selector, rail tab, xterm, module-scope store |
+| `src/client/index.jsx` | cockpit presentation, panel, companion navigation rows, project selector, xterm, module-scope store |
+| `src/client/utility-panel.jsx` | the bottom Files/Activity/Problems/Output panel and the project file editor |
 | `src/client/keymap.js` | V1.1 shortcut grammar, matching, target resolution, persistence (pure) |
 | `test/keymap.test.mjs` | unit tests for the keyboard layer (`node --test`) |
+| `test/project-files.test.mjs` | confinement, version-check, and UTF-8 tests for the file service |
 | `build.mjs` / `wrap.mjs` | bundle into the module-loader factory format |
 | `lib/client.js` | the built browser bundle the DSH profile serves (tracked) |
 | `verify.mjs` | pre-install verification |
@@ -366,22 +379,27 @@ unauthenticated shell. The route is `/x/workbench/ws`, deliberately outside
 `/api`, which the connection row owns. The process environment is never returned
 to the client and never logged.
 
-The dock does not weaken that boundary, and is the reason to state it twice. It
-is a one-way text path **out** of the browser: what it sends is what the user
-typed into it. It never reads a PTY, an xterm buffer or the host's scrollback,
-and the `Context` tab carries only the same project metadata the rail already
-shows. Copy in the terminal card header is a browser-side read of the selection
-already on screen, into the clipboard the user asked for — it neither leaves the
-browser nor reaches the model. Quick Actions launch through DSH's existing
-`ctx.openInApp` capability on a directory this host already registered; this
-plugin adds no host action of its own.
+The companion drawer and the file service do not weaken that boundary, which is
+the reason to state it twice. Chat is the fork's native Conversation, re-homed
+into the right column: it sends only **user-authored text** through the Session's
+own conversation services and never reads a PTY, an xterm buffer, or the host's
+scrollback. The bottom `Files` panel reaches the host only through the
+authenticated socket, and `src/host/project-files.js` resolves only project ids
+the registry holds, realpaths the registered root, rejects lexical and symlink
+escapes, bounds reads to 2 MiB of UTF-8, and refuses a save whose file changed
+underneath it. Copy in the terminal card header is a browser-side read of the
+selection already on screen, into the clipboard the user asked for — it neither
+leaves the browser nor reaches the model.
 
 ## Not in V1
 
 No model visibility into these sessions, no output capture, no cross-harness
 comparison, no token/cost data, no persistence across a DSH restart. Sessions are
-process-local by design. The contextual rail tab is **read-only metadata**. The
-rail's Quick Actions are limited to `ctx.openInApp`: "Run Tests" and "View Logs"
-from the reference need host actions this plugin deliberately does not add, and
-a Push button is a credentialed network flow outside its remit — type `git push`
-in a terminal.
+process-local by design. The contextual rail is **read-only metadata** and shows
+Active Terminals only. `Activity`, `Problems`, and `Output` are empty-state
+containers until a deterministic feed exists — nothing is faked. The Workbench
+adds no host action of its own: "Run Tests" and "View Logs" from the reference
+would need host actions this plugin deliberately does not add, and a Push button
+is a credentialed network flow outside its remit — type `git push` in a terminal.
+The right rail's free space is reserved for a future evidence-backed intelligence
+surface, which is not implemented here.
