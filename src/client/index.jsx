@@ -16,6 +16,7 @@ import { FitAddon } from '@xterm/addon-fit'
 import { Terminal } from '@xterm/xterm'
 import xtermCss from '@xterm/xterm/css/xterm.css'
 import * as React from 'react'
+import { UtilityPanel, UTILITY_PANEL_CSS } from './utility-panel.jsx'
 
 import {
   DEFAULT_CONFIG,
@@ -43,6 +44,9 @@ export const inject = ['slots']
 
 const PANEL_ID = 'workbench'
 const RAIL_TYPE_ID = 'dsh-workbench/rail'
+/** The rail tab type's registry kind: `openTab` and `active().kind` address this,
+ * while `RAIL_TYPE_ID` is the definition id and the keyed body-seat key. */
+const RAIL_KIND = 'workbench-rail'
 /** Sentinel project id the host maps to its own working directory. */
 const DEFAULT_PROJECT_ID = 'workbench-default'
 const WS_PATH = '/x/workbench/ws'
@@ -91,15 +95,19 @@ const PANEL_CSS = `
    read-only information rail, separated by one hairline. Everything is sized
    from the reference composition, on the shipped cockpit roles only. */
 .dshw-root{display:flex;height:100%;min-height:0;min-width:0;font-size:13px;color:var(--dsw-cockpit-text-primary,var(--dsw-alias-label-primary))}
-.dshw-main{display:flex;flex-direction:column;flex:1 1 auto;min-width:0;min-height:0}
+.dshw-main{position:relative;display:flex;flex-direction:column;flex:1 1 auto;min-width:0;min-height:0}
+.dshw-nav-row{display:flex;align-items:center;gap:10px;width:100%;height:36px;padding:0 12px;border:0;border-radius:8px;background:transparent;color:var(--dsw-cockpit-text-secondary,var(--dsw-alias-label-secondary));font:inherit;font-size:13px;text-align:left;cursor:pointer}
+.dshw-nav-row:hover{background:var(--dsw-alias-interactive-bg-hover);color:var(--dsw-cockpit-text-primary,var(--dsw-alias-label-primary))}
+.dshw-nav-row[data-active="true"]{background:var(--dsw-cockpit-bg-layer-2,var(--dsw-alias-bg-layer-2));color:var(--dsw-cockpit-text-primary,var(--dsw-alias-label-primary));font-weight:500}
+.dshw-nav-row[data-wide="false"]{justify-content:center;padding:0}
 .dshw-spacer{flex:1 1 auto}
 .dshw-dot{width:7px;height:7px;border-radius:50%;flex:0 0 auto}
 
 /* ── panel header ─────────────────────────────────────────────────────── */
-.dshw-head{display:flex;align-items:center;gap:13px;flex:none;height:80px;padding:0 18px}
-.dshw-head-tile{display:flex;align-items:center;justify-content:center;flex:none;width:42px;height:42px;border-radius:11px;background:color-mix(in srgb,var(--dsw-cockpit-accent-primary,#3b82f6) 26%,transparent);border:0.5px solid color-mix(in srgb,var(--dsw-cockpit-accent-primary,#3b82f6) 42%,transparent);color:#bfd7ff}
+.dshw-head{display:flex;align-items:center;gap:10px;flex:none;height:52px;padding:0 12px}
+.dshw-head-tile{display:flex;align-items:center;justify-content:center;flex:none;width:32px;height:32px;border-radius:8px;background:color-mix(in srgb,var(--dsw-cockpit-accent-primary,#3b82f6) 26%,transparent);border:0.5px solid color-mix(in srgb,var(--dsw-cockpit-accent-primary,#3b82f6) 42%,transparent);color:#bfd7ff}
 .dshw-head-text{display:flex;flex-direction:column;gap:2px;min-width:0}
-.dshw-head-title{font-size:20px;font-weight:600;line-height:25px;letter-spacing:-.01em}
+.dshw-head-title{font-size:17px;font-weight:600;line-height:21px;letter-spacing:-.01em}
 .dshw-head-sub{font-size:12.5px;line-height:16px;color:var(--dsw-cockpit-text-muted,var(--dsw-alias-label-caption))}
 
 /* ── shared controls ──────────────────────────────────────────────────── */
@@ -132,7 +140,7 @@ const PANEL_CSS = `
 .dshw-glyph{display:inline-flex;align-items:center;justify-content:center;flex:none;width:20px;height:20px;border-radius:6px;font-size:10px;font-weight:700;letter-spacing:-.02em;color:#fff}
 
 /* ── project toolbar ──────────────────────────────────────────────────── */
-.dshw-toolbar{display:flex;align-items:center;gap:9px;flex:none;height:46px;padding:0 18px;border-bottom:0.5px solid var(--dsw-cockpit-border-subtle,var(--dsw-alias-border-l1))}
+.dshw-toolbar{display:flex;align-items:center;gap:8px;flex:none;height:39px;padding:0 12px;border-bottom:0.5px solid var(--dsw-cockpit-border-subtle,var(--dsw-alias-border-l1))}
 .dshw-toolbar-label{flex:none;font-size:12.5px;color:var(--dsw-cockpit-text-muted,var(--dsw-alias-label-caption))}
 .dshw-path{min-width:0;flex:0 1 auto;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:var(--ds-font-family-code,ui-monospace,monospace);font-size:12px;color:var(--dsw-cockpit-text-muted,var(--dsw-alias-label-caption))}
 .dshw-meta{display:inline-flex;align-items:center;gap:6px;flex:none;font-size:12.5px;color:var(--dsw-cockpit-text-secondary,var(--dsw-alias-label-secondary))}
@@ -140,10 +148,10 @@ const PANEL_CSS = `
 .dshw-hold{position:relative;flex:none;display:inline-flex}
 
 /* ── terminal tabs ────────────────────────────────────────────────────── */
-.dshw-tabrow{display:flex;align-items:flex-end;gap:4px;flex:none;height:44px;padding:0 14px 0 18px;border-bottom:0.5px solid var(--dsw-cockpit-border-subtle,var(--dsw-alias-border-l1))}
+.dshw-tabrow{display:flex;align-items:flex-end;gap:4px;flex:none;height:38px;padding:0 10px 0 12px;border-bottom:0.5px solid var(--dsw-cockpit-border-subtle,var(--dsw-alias-border-l1))}
 .dshw-tabs{display:flex;align-items:flex-end;gap:3px;flex:1 1 auto;min-width:0;height:100%;overflow-x:auto;overflow-y:hidden;scrollbar-width:none}
 .dshw-tabs::-webkit-scrollbar{display:none}
-.dshw-tab{position:relative;bottom:-0.5px;display:inline-flex;align-items:center;gap:8px;flex:none;height:37px;padding:0 7px 0 8px;border:0.5px solid transparent;border-radius:8px 8px 0 0;background:transparent;color:var(--dsw-cockpit-text-secondary,var(--dsw-alias-label-secondary));font-size:13px;font-family:inherit;cursor:pointer;white-space:nowrap}
+.dshw-tab{position:relative;bottom:-0.5px;display:inline-flex;align-items:center;gap:7px;flex:none;height:32px;padding:0 6px 0 7px;border:0.5px solid transparent;border-radius:7px 7px 0 0;background:transparent;color:var(--dsw-cockpit-text-secondary,var(--dsw-alias-label-secondary));font-size:12.5px;font-family:inherit;cursor:pointer;white-space:nowrap}
 .dshw-tab:hover{background:var(--dsw-alias-interactive-bg-hover);color:var(--dsw-cockpit-text-primary,var(--dsw-alias-label-primary))}
 .dshw-tab[data-active="true"]{background:var(--dsw-cockpit-bg-layer-1,var(--dsw-alias-bg-layer-1));border-color:var(--dsw-cockpit-border-subtle,var(--dsw-alias-border-l1));border-bottom-color:var(--dsw-cockpit-bg-layer-1,var(--dsw-alias-bg-layer-1));color:var(--dsw-cockpit-text-primary,var(--dsw-alias-label-primary))}
 .dshw-tab[data-active="true"]::after{content:"";position:absolute;left:-0.5px;right:-0.5px;top:-0.5px;height:2px;border-radius:2px 2px 0 0;background:var(--dsw-cockpit-accent-primary,#3b82f6)}
@@ -159,7 +167,7 @@ const PANEL_CSS = `
 .dshw-addmenu-custom .dshw-input{min-width:0;flex:1 1 auto}
 
 /* ── terminal card ────────────────────────────────────────────────────── */
-.dshw-card{display:flex;flex-direction:column;flex:1 1 auto;min-height:150px;margin:14px 18px 0;border:0.5px solid var(--dsw-cockpit-border-subtle,var(--dsw-alias-border-l1));border-radius:10px;background:var(--dsw-cockpit-bg-base,var(--dsw-alias-bg-base));overflow:hidden}
+.dshw-card{display:flex;flex-direction:column;flex:1 1 auto;min-height:150px;margin:8px 12px 0;border:0.5px solid var(--dsw-cockpit-border-subtle,var(--dsw-alias-border-l1));border-radius:9px;background:var(--dsw-cockpit-bg-base,var(--dsw-alias-bg-base));overflow:hidden}
 .dshw-termhead{display:flex;align-items:center;gap:9px;flex:none;height:39px;padding:0 8px 0 11px;border-bottom:0.5px solid var(--dsw-cockpit-border-subtle,var(--dsw-alias-border-l1));background:var(--dsw-cockpit-bg-layer-1,var(--dsw-alias-bg-layer-1));font-size:13px}
 .dshw-termhead-label{flex:none;font-weight:600;color:var(--dsw-cockpit-text-primary,var(--dsw-alias-label-primary))}
 .dshw-cwd{display:inline-flex;align-items:center;flex:0 1 auto;min-width:0;height:24px;padding:0 8px;border:0.5px solid var(--dsw-cockpit-border-subtle,var(--dsw-alias-border-l1));border-radius:6px;font-family:var(--ds-font-family-code,ui-monospace,monospace);font-size:11.5px;color:var(--dsw-cockpit-text-muted,var(--dsw-alias-label-caption));overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -213,6 +221,7 @@ const PANEL_CSS = `
 
 /* ── information rail ─────────────────────────────────────────────────── */
 .dshw-rail{display:flex;flex-direction:column;flex:0 0 296px;width:296px;min-width:0;overflow:hidden;border-left:0.5px solid var(--dsw-cockpit-border-subtle,var(--dsw-alias-border-l1))}
+.dshw-rail-pane{display:flex;flex-direction:column;height:100%;min-height:0}
 .dshwr-root{display:flex;flex-direction:column;flex:1 1 auto;min-height:0;overflow-y:auto;padding:14px 12px 10px}
 .dshwr-section{display:flex;flex-direction:column;gap:1px;padding-bottom:14px}
 .dshwr-head{display:flex;align-items:center;gap:8px;height:26px;padding:0 6px;margin-bottom:3px;font-size:12.5px;font-weight:600;letter-spacing:0;text-transform:none;color:var(--dsw-cockpit-text-primary,var(--dsw-alias-label-primary))}
@@ -270,6 +279,8 @@ let reconnectDelay = 500
 let styleElement = null
 let lastCols = 120
 let lastRows = 30
+let requestSequence = 0
+const pendingRequests = new Map()
 
 function notify() {
   for (const listener of listeners) {
@@ -296,13 +307,39 @@ function send(message) {
   }
 }
 
+function request(type, fields) {
+  return new Promise((resolve, reject) => {
+    const requestId = `workbench-${++requestSequence}`
+    const timer = window.setTimeout(() => {
+      pendingRequests.delete(requestId)
+      reject(new Error('Workbench request timed out'))
+    }, 15000)
+    pendingRequests.set(requestId, {
+      resolve: (value) => { window.clearTimeout(timer); resolve(value) },
+      reject: (error) => { window.clearTimeout(timer); reject(error) },
+    })
+    if (!send({ t: type, requestId, ...fields })) {
+      pendingRequests.delete(requestId)
+      window.clearTimeout(timer)
+      reject(new Error('Workbench is not connected'))
+    }
+  })
+}
+
+function rejectPending(message) {
+  for (const [requestId, pending] of pendingRequests) {
+    pendingRequests.delete(requestId)
+    pending.reject(new Error(message))
+  }
+}
+
 // ── styles ────────────────────────────────────────────────────────────────
 
 function ensureStyles() {
   if (styleElement !== null) return
   styleElement = document.createElement('style')
   styleElement.dataset.dshWorkbench = ''
-  styleElement.textContent = `${xtermCss}\n${PANEL_CSS}`
+  styleElement.textContent = `${xtermCss}\n${PANEL_CSS}\n${UTILITY_PANEL_CSS}`
   document.head.appendChild(styleElement)
 }
 
@@ -437,8 +474,8 @@ function dropSession(id) {
  * held. The host resolves only ids it registered, so no path leaves the client.
  * @param projectId - registered project id, or null.
  */
-function requestProjectInfo(projectId) {
-  if (projectId === null || state.projectInfo[projectId] !== undefined) return
+function requestProjectInfo(projectId, force = false) {
+  if (projectId === null || (!force && state.projectInfo[projectId] !== undefined)) return
   send({ t: 'projectInfo', id: projectId })
 }
 
@@ -450,6 +487,20 @@ function railProjectId() {
 // ── transport ─────────────────────────────────────────────────────────────
 
 function handle(message) {
+  if (typeof message.requestId === 'string') {
+    const pending = pendingRequests.get(message.requestId)
+    if (pending !== undefined) {
+      pendingRequests.delete(message.requestId)
+      if (message.t === 'error') {
+        const error = new Error(message.message ?? 'Workbench request failed')
+        error.code = message.code
+        pending.reject(error)
+      } else {
+        pending.resolve(message.result)
+      }
+      return
+    }
+  }
   switch (message.t) {
     case 'state': {
       state.presets = message.presets ?? []
@@ -547,6 +598,7 @@ function ensureSocket() {
   ws.onclose = () => {
     if (socket === ws) socket = null
     state.status = 'closed'
+    rejectPending('Workbench connection closed')
     notify()
     if (closedByUs) return
     const delay = reconnectDelay
@@ -558,6 +610,18 @@ function ensureSocket() {
   ws.onerror = () => {
     // onclose owns recovery.
   }
+}
+
+function listProjectFiles(projectId, path) {
+  return request('fileList', { projectId, path })
+}
+
+function readProjectFile(projectId, path) {
+  return request('fileRead', { projectId, path })
+}
+
+function writeProjectFile(projectId, path, content, expectedVersion) {
+  return request('fileWrite', { projectId, path, content, expectedVersion })
 }
 
 // ── actions ───────────────────────────────────────────────────────────────
@@ -705,407 +769,26 @@ function PresetMark({ presetId, accent, size = 20 }) {
   )
 }
 
-// ── the DSH conversation, addressed from root scope ───────────────────────
-//
-// The dock's composer sends **user-authored text** into the current DSH
-// Session's Conversation through the documented scope-addressed path
-// (`ctx.sessions.scope(id).conversation.send`). It never reads a PTY, a
-// scrollback buffer or any terminal output: the security boundary is that the
-// DSH model has no path to these terminals, and a composer that could quote
-// them would be exactly that path. Absent services disable the control rather
-// than faking it.
-
-/** The client sessions service, or null in a composition without it. */
-function sessionsService() {
-  if (pluginCtx === null) return null
-  try {
-    const service = pluginCtx.get('sessions')
-    return service === undefined ? null : service
-  } catch {
-    return null
-  }
-}
-
-/** The DSH Session a composed message would go to, or null when there is none. */
-function conversationTarget() {
-  const sessions = sessionsService()
-  if (sessions === null || typeof sessions.list?.getSnapshot !== 'function') return null
-  let snapshot
-  try {
-    snapshot = sessions.list.getSnapshot()
-  } catch {
-    return null
-  }
-  const id = snapshot?.current
-  if (id === undefined || id === null) return null
-  const title = snapshot.byId?.[id]?.title
-  return { id, title: typeof title === 'string' && title !== '' ? title : 'Current session' }
-}
-
-/**
- * Send one user-authored prompt into a Session's Conversation.
- * @param id - target Session id.
- * @param text - the text the user typed.
- */
-async function sendToConversation(id, text) {
-  const sessions = sessionsService()
-  const scope = sessions === null || typeof sessions.scope !== 'function' ? undefined : sessions.scope(id)
-  const conversation = scope?.conversation
-  if (conversation === undefined || typeof conversation.send !== 'function') {
-    throw new Error('the conversation service is unavailable in this composition')
-  }
-  await conversation.send(text)
-}
-
-/** The five one-click openings the reference shows; each prefills, none sends. */
-const PROMPT_CHIPS = [
-  'Explain this code',
-  'Find related files',
-  'Draft a commit message',
-  'Debug this issue',
-  'Plan next steps',
-]
-
-/**
- * The dock under the terminal card: a Chat composer addressed at the current
- * DSH Session, and a Context tab listing the project facts a message can carry.
- * @param props.project - the resolved project record, if one is selected.
- * @param props.info - read-only project metadata from the host.
- * @param props.projectPath - the working directory new terminals start in.
- * @returns The dock.
- */
-function SessionDock({ project, info, projectPath }) {
-  const [tab, setTab] = React.useState('chat')
-  const [collapsed, setCollapsed] = React.useState(false)
-  const [text, setText] = React.useState('')
-  const [busy, setBusy] = React.useState(false)
-  const [error, setError] = React.useState(null)
-  const [, forceRender] = React.useReducer((count) => count + 1, 0)
-  const askRef = React.useRef(null)
-
-  // The target follows DSH's own session selection, so the chip never claims a
-  // session that has since been closed or switched away from.
-  React.useEffect(() => {
-    const sessions = sessionsService()
-    if (sessions === null || typeof sessions.list?.subscribe !== 'function') return undefined
-    return sessions.list.subscribe(forceRender)
-  }, [])
-
-  const target = conversationTarget()
-  const facts = [
-    ['Project', info?.name ?? project?.name ?? 'Working directory', false],
-    ['Path', projectPath, true],
-    info?.branch == null ? null : ['Branch', info.branch, false],
-    info?.clean === undefined
-      ? null
-      : ['State', info.clean === true ? 'Clean' : `${info.changed} changed`, false],
-    ['Terminals', `${state.sessions.length} open`, false],
-  ].filter((fact) => fact !== null)
-
-  const submit = () => {
-    const prompt = text.trim()
-    if (prompt === '' || target === null || busy) return
-    setBusy(true)
-    setError(null)
-    sendToConversation(target.id, prompt).then(
-      () => {
-        setBusy(false)
-        setText('')
-        // Show the turn where it actually happens; the Workbench stays one click away.
-        try {
-          pluginCtx?.get('layout')?.selectPanel(null)
-        } catch {
-          // A composition without the layout service simply stays put.
-        }
-      },
-      (failure) => {
-        setBusy(false)
-        setError(String(failure?.message ?? failure))
-      },
-    )
-  }
-
-  const prefill = (chip) => {
-    setTab('chat')
-    setText(current => (current.trim() === '' ? chip : `${current.trimEnd()} ${chip}`))
-    window.requestAnimationFrame(() => askRef.current?.focus())
-  }
-
-  return (
-    <div className="dshw-dock">
-      <div className="dshw-docktabs" role="tablist">
-        <button
-          type="button"
-          role="tab"
-          className="dshw-docktab"
-          data-active={tab === 'chat'}
-          aria-selected={tab === 'chat'}
-          onClick={() => setTab('chat')}
-        >
-          <Glyph name="chat" size={15} />
-          Chat
-        </button>
-        <button
-          type="button"
-          role="tab"
-          className="dshw-docktab"
-          data-active={tab === 'context'}
-          aria-selected={tab === 'context'}
-          onClick={() => setTab('context')}
-        >
-          <Glyph name="layers" size={15} />
-          Context
-          <span className="dshw-dockbadge">{facts.length}</span>
-        </button>
-        <button
-          type="button"
-          className="dshw-icon dshw-dockcollapse"
-          data-collapsed={collapsed}
-          aria-expanded={!collapsed}
-          aria-label={collapsed ? 'Expand the dock' : 'Collapse the dock'}
-          title={collapsed ? 'Expand the dock' : 'Collapse the dock — give the height to the terminal'}
-          onClick={() => setCollapsed(open => !open)}
-        >
-          <Glyph name="chevron" size={16} />
-        </button>
-      </div>
-
-
-      {collapsed ? null : tab === 'context'
-        ? (
-          <div className="dshw-context">
-            {facts.map(([key, value, mono]) => (
-              <div className="dshw-ctxrow" key={key}>
-                <span className="dshw-ctxkey">{key}</span>
-                <span className="dshw-ctxval" data-mono={mono} title={value}>{value}</span>
-              </div>
-            ))}
-            <p className="dshw-ctxnote">
-              Terminal output is never part of this context. Add these facts to the message and
-              they go as text you can read and edit first.
-            </p>
-            <button
-              type="button"
-              className="dshw-btn"
-              style={{ alignSelf: 'flex-start', marginTop: 6 }}
-              onClick={() => {
-                const block = facts.map(([key, value]) => `${key}: ${value}`).join('\n')
-                setTab('chat')
-                setText(current => (current.trim() === '' ? `${block}\n\n` : `${current.trimEnd()}\n\n${block}\n\n`))
-                window.requestAnimationFrame(() => askRef.current?.focus())
-              }}
-            >
-              Add to message
-            </button>
-          </div>
-        )
-        : (
-          <>
-            <div className="dshw-prompts">
-              {PROMPT_CHIPS.map((chip) => (
-                <button
-                  key={chip}
-                  type="button"
-                  className="dshw-prompt"
-                  title="Put this in the message — nothing is sent until you press Send"
-                  onClick={() => prefill(chip)}
-                >
-                  {chip}
-                </button>
-              ))}
-            </div>
-            <div className="dshw-composer">
-              <textarea
-                ref={askRef}
-                className="dshw-ask"
-                rows={2}
-                value={text}
-                spellCheck={false}
-                placeholder={target === null ? 'Start a session to ask anything…' : 'Ask anything…'}
-                disabled={target === null}
-                onChange={(event) => setText(event.target.value)}
-                onKeyDown={(event) => {
-                  if (event.key === 'Enter' && !event.shiftKey) {
-                    event.preventDefault()
-                    submit()
-                  }
-                }}
-              />
-              <div className="dshw-composer-foot">
-                <span
-                  className="dshw-scope"
-                  title={target === null
-                    ? 'No DSH session is open, so there is nowhere to send a message'
-                    : `The message goes to the conversation in “${target.title}”`}
-                >
-                  <Glyph name="chat" size={13} />
-                  <span className="dshw-scope-label">{target === null ? 'No session' : target.title}</span>
-                </span>
-                {error !== null && <span className="dshw-err" style={{ fontSize: 11.5 }}>{error}</span>}
-                <span className="dshw-spacer" />
-                <button
-                  type="button"
-                  className="dshw-send"
-                  disabled={target === null || busy || text.trim() === ''}
-                  title={target === null ? 'No DSH session is open' : 'Send to the conversation (Enter)'}
-                  aria-label="Send"
-                  onClick={submit}
-                >
-                  <Glyph name="send" size={15} />
-                </button>
-              </div>
-            </div>
-          </>
-        )}
-    </div>
-  )
-}
-
-// ── quick actions, over a shipped capability ──────────────────────────────
-//
-// `ctx.openInApp` is DSH's own installed-application capability: the host
-// probes which editors and file managers exist and serves an icon per app, and
-// the Session header already offers the same launch. The rail reuses that
-// service rather than registering a host action of its own, so the tiles are
-// the real thing on the machines that have those apps — and the section simply
-// does not render where the service, or the app list, is absent.
-
-/** The openInApp service, or null in a composition without it. */
-function openInAppService() {
-  if (pluginCtx === null) return null
-  try {
-    const service = pluginCtx.get('openInApp')
-    return service === undefined ? null : service
-  } catch {
-    return null
-  }
-}
-
-/** A translate function for the open-in-app dictionary, or null. */
-function openInAppLabels() {
-  if (pluginCtx === null) return null
-  try {
-    const locale = pluginCtx.get('locale')
-    return typeof locale?.bind === 'function' ? locale.bind('open-in-app') : null
-  } catch {
-    return null
-  }
-}
-
-/**
- * The rail's Quick Actions grid: one tile per installed application, opening
- * the current project directory in it.
- * @param props.path - the directory the tiles act on.
- * @returns The section, or nothing when no real action is available.
- */
-function QuickActions({ path }) {
-  const service = openInAppService()
-  const [, forceRender] = React.useReducer((count) => count + 1, 0)
-  React.useEffect(() => (service === null ? undefined : service.apps.subscribe(forceRender)), [service])
-  if (service === null || path === '') return null
-  const apps = service.apps.getSnapshot()
-  if (apps === null || apps.length === 0) return null
-  const t = openInAppLabels()
+/** Compact facts for the native Context companion. */
+function RailSections() {
   return (
     <section className="dshwr-section">
-      <span className="dshwr-head"><Glyph name="panel" size={15} />Quick Actions</span>
-      <div className="dshwr-grid">
-        {apps.slice(0, 4).map((appId) => {
-          const label = t === null ? appId : t(service.labelKey(appId))
-          return (
-            <button
-              key={appId}
-              type="button"
-              className="dshwr-action"
-              title={`Open ${path} in ${label}`}
-              onClick={() => { void service.launch(appId, path).catch(() => {}) }}
-            >
-              <img className="dshwr-action-icon" src={service.iconUrl(appId)} alt="" aria-hidden="true" />
-              <span className="dshwr-action-label">{label}</span>
-            </button>
-          )
-        })}
-      </div>
-    </section>
-  )
-}
-
-/**
- * The read-only rail sections, shared by the Workbench's always-visible info
- * column and by the rail tab the plugin registers.
- */
-function RailSections() {
-  const projectId = railProjectId()
-  const project = state.projects.find((entry) => entry.id === projectId)
-  const info = state.projectInfo[projectId]
-  const files = info?.files ?? []
-  const [expanded, setExpanded] = React.useState(false)
-  const shown = expanded ? files : files.slice(0, 5)
-  return (
-    <>
-      <section className="dshwr-section">
-        <span className="dshwr-head"><Glyph name="folder" size={15} />Project Info</span>
-        <span className="dshwr-name">
-          <Glyph name="folder" size={15} />
-          {info?.name ?? project?.name ?? 'Working directory'}
-        </span>
-        <span className="dshwr-path">{info?.path ?? project?.path ?? state.defaultCwd ?? ''}</span>
-        {info?.branch != null && (
-          <div className="dshwr-row">
-            <Glyph name="branch" size={15} />
-            <span className="dshwr-row-name">{info.branch}</span>
-          </div>
-        )}
-        {info?.clean !== undefined && (
-          <div className="dshwr-row" data-clean={info.clean === true}>
-            {info.clean === true
-              ? <span className="dshw-dot" style={{ background: 'var(--dsw-cockpit-success,#22c55e)' }} />
-              : <span className="dshw-dot" style={{ background: 'var(--dsw-cockpit-warning,#f59e0b)' }} />}
-            <span className="dshwr-row-name">
-              {info.clean === true ? 'Clean' : `${info.changed} changed`}
+      <span className="dshwr-head"><Glyph name="terminal" size={15} />Active Terminals</span>
+      {state.sessions.length === 0
+        ? <span className="dshwr-empty">No terminals open.</span>
+        : state.sessions.map((session) => (
+          <div className="dshwr-row" data-hover="true" key={session.id} title={session.cwd}>
+            <span
+              className="dshw-dot"
+              style={{ background: session.status === 'running' ? session.accent : 'var(--dsw-cockpit-text-muted,#61666b)' }}
+            />
+            <span className="dshwr-row-name">{session.label}</span>
+            <span className="dshwr-meta">
+              {session.status === 'running' ? uptime(session.startedAt) : 'stopped'}
             </span>
           </div>
-        )}
-      </section>
-
-      <section className="dshwr-section">
-        <span className="dshwr-head"><Glyph name="file" size={15} />Recent Files</span>
-        {shown.length === 0
-          ? <span className="dshwr-empty">No files read yet.</span>
-          : shown.map((file) => (
-            <div className="dshwr-row" data-hover="true" key={file.name} title={file.name}>
-              <Glyph name={file.dir ? 'folder' : 'file'} size={15} />
-              <span className="dshwr-row-name">{file.dir ? `${file.name}/` : file.name}</span>
-              <span className="dshwr-meta">{relativeTime(file.mtime)}</span>
-            </div>
-          ))}
-        {files.length > 5 && (
-          <button type="button" className="dshwr-more" onClick={() => setExpanded(open => !open)}>
-            {expanded ? 'Show less' : 'Show more…'}
-          </button>
-        )}
-      </section>
-
-      <QuickActions path={info?.path ?? project?.path ?? state.defaultCwd ?? ''} />
-
-      <section className="dshwr-section">
-        <span className="dshwr-head"><Glyph name="terminal" size={15} />Active Terminals</span>
-        {state.sessions.length === 0
-          ? <span className="dshwr-empty">No terminals open.</span>
-          : state.sessions.map((session) => (
-            <div className="dshwr-row" data-hover="true" key={session.id} title={session.cwd}>
-              <span
-                className="dshw-dot"
-                style={{ background: session.status === 'running' ? session.accent : 'var(--dsw-cockpit-text-muted,#61666b)' }}
-              />
-              <span className="dshwr-row-name">{session.label}</span>
-              <span className="dshwr-meta">
-                {session.status === 'running' ? uptime(session.startedAt) : 'stopped'}
-              </span>
-            </div>
-          ))}
-      </section>
-    </>
+        ))}
+    </section>
   )
 }
 
@@ -1116,10 +799,15 @@ function RailSections() {
 function WorkbenchRail() {
   const [, forceRender] = React.useReducer((count) => count + 1, 0)
   React.useEffect(() => subscribe(forceRender), [])
-  React.useEffect(() => { requestProjectInfo(railProjectId()) }, [state.activeProjectId])
   return (
-    <div className="dshwr-root" data-workbench-rail>
-      <RailSections />
+    <div className="dshw-rail-pane" data-workbench-rail>
+      <div className="dshwr-root"><RailSections /></div>
+      <div className="dshwr-foot">
+        <span className="dshw-dot" style={{ background: state.status === 'open' ? 'var(--dsw-cockpit-success,#22c55e)' : 'var(--dsw-cockpit-warning,#f59e0b)' }} />
+        <span>{state.status === 'open' ? 'Connected' : state.status === 'connecting' ? 'Connecting…' : 'Reconnecting…'}</span>
+        <span className="dshw-spacer" />
+        <span title={`Active shortcuts — ${summarize(state.shortcuts, IS_MAC)}`}>v{VERSION}</span>
+      </div>
     </div>
   )
 }
@@ -1223,6 +911,7 @@ function WorkbenchPanel() {
   const info = state.projectInfo[projectId]
   const projectPath = info?.path ?? project?.path ?? state.defaultCwd ?? ''
   const projectName = info?.name ?? project?.name ?? 'Working directory'
+  React.useEffect(() => { requestProjectInfo(projectId) }, [projectId])
   const clearActive = () => {
     const record = state.activeId === null ? undefined : records.get(state.activeId)
     if (record !== undefined) record.term.clear()
@@ -1354,7 +1043,7 @@ function WorkbenchPanel() {
                   type="button"
                   role="menuitem"
                   className="dshw-menu-item"
-                  onClick={() => { setMoreOpen(false); requestProjectInfo(railProjectId()) }}
+                  onClick={() => { setMoreOpen(false); requestProjectInfo(projectId, true) }}
                 >
                   <Glyph name="branch" size={15} />
                   Refresh git state
@@ -1447,16 +1136,7 @@ function WorkbenchPanel() {
             >
               Close
             </button>
-            <div className="dshw-keys-hint">
-              Mod = Ctrl on Windows/Linux, Cmd on macOS. Comma-separate alternatives. Chromium keeps
-              Ctrl+Tab / Ctrl+Shift+Tab for its own tabs in a normal browser tab — those bindings only
-              arrive when DSH runs as an app window (installed PWA / <code>--app</code>) or fullscreen;
-              Alt+→ / Alt+← always arrive. Switching tabs never touches a running session; saved per
-              browser profile.
-              {keyErrors !== null && (
-                <span className="dshw-keys-err"> Fix the highlighted binding to save.</span>
-              )}
-            </div>
+            {keyErrors !== null && <span className="dshw-keys-err">Fix the highlighted binding to save.</span>}
           </div>
         )}
 
@@ -1632,36 +1312,48 @@ function WorkbenchPanel() {
           </div>
         </div>
 
-        <SessionDock project={project} info={info} projectPath={projectPath} />
+        <UtilityPanel
+          projectId={projectId}
+          connectionState={state.status}
+          listFiles={listProjectFiles}
+          readFile={readProjectFile}
+          writeFile={writeProjectFile}
+        />
       </div>
-
-      <aside className="dshw-rail" aria-label="Project information">
-        <div className="dshwr-root">
-          <RailSections />
-        </div>
-        <div className="dshwr-foot">
-          <span
-            className="dshw-dot"
-            style={{
-              background: state.status === 'open'
-                ? 'var(--dsw-cockpit-success,#22c55e)'
-                : 'var(--dsw-cockpit-warning,#f59e0b)',
-            }}
-          />
-          <span>
-            {state.status === 'open'
-              ? 'Connected'
-              : state.status === 'connecting'
-                ? 'Connecting…'
-                : 'Reconnecting…'}
-          </span>
-          <span className="dshw-spacer" />
-          {state.platform !== null && <span>{state.platform}</span>}
-          <span title={`Active shortcuts — ${summarize(state.shortcuts, IS_MAC)}`}>v{VERSION}</span>
-          {state.error !== null && <span className="dshw-err" title={state.error}>!</span>}
-        </div>
-      </aside>
     </div>
+  )
+}
+
+function CockpitNavigation({ wide, destination, usePanelInfo }) {
+  const rail = pluginCtx?.get('sidebarRight')
+  const mode = React.useSyncExternalStore(
+    React.useCallback(listener => rail?.subscribe(listener) ?? (() => {}), [rail]),
+    React.useCallback(() => rail?.companionMode() ?? 'context', [rail]),
+  )
+  const workbenchActive = usePanelInfo(info => info.activePanelId === PANEL_ID)
+  const active = workbenchActive && (destination === 'workbench' ? mode === 'context' : mode === destination)
+  const label = destination === 'workbench' ? 'Workbench' : destination === 'chat' ? 'Chat' : 'Trajectory'
+  const glyph = destination === 'workbench' ? 'terminal' : destination === 'chat' ? 'chat' : 'layers'
+  return (
+    <button
+      type="button"
+      className="dshw-nav-row"
+      data-wide={wide}
+      data-active={active || undefined}
+      aria-label={label}
+      aria-current={active ? 'page' : undefined}
+      title={wide ? undefined : label}
+      onClick={() => {
+        try { pluginCtx?.get('layout')?.selectPanel(PANEL_ID) } catch {}
+        rail?.openCompanion(destination === 'workbench' ? 'context' : destination)
+        if (destination === 'workbench') {
+          try { rail?.openTab(RAIL_KIND) } catch {}
+        }
+      }}
+    >
+      <Glyph name={glyph} size={wide ? 16 : 18} />
+      {wide ? <span>{label}</span> : null}
+    </button>
   )
 }
 
@@ -1699,12 +1391,11 @@ export function apply(ctx) {
     return
   }
 
-  installSeat(slots, 'sidebar.panellist', () =>
-    slots.register(
-      { name: 'sidebar.panellist', id: PANEL_ID, label: 'Workbench', order: 40 },
-      (props) => <WorkbenchIcon {...props} />,
-    ),
-  )
+  installSeat(slots, 'sidebar.navigation', function* () {
+    yield slots.register({ name: 'sidebar.navigation', id: 'cockpit-chat', order: 10 }, props => <CockpitNavigation {...props} destination="chat" />)
+    yield slots.register({ name: 'sidebar.navigation', id: 'cockpit-trajectory', order: 20 }, props => <CockpitNavigation {...props} destination="trajectory" />)
+    yield slots.register({ name: 'sidebar.navigation', id: 'cockpit-workbench', order: 30 }, props => <CockpitNavigation {...props} destination="workbench" />)
+  })
 
   installSeat(slots, 'main', () =>
     slots.register({ name: 'main', key: PANEL_ID }, () => <WorkbenchPanel />),
@@ -1726,28 +1417,64 @@ export function apply(ctx) {
   // any other rail type uses. It carries only facts this plugin already owns,
   // so the rail learns nothing Workbench-specific and the DSH model gains no
   // handle to any terminal.
-  ctx.inject(['sidebarRightTabs'], (scope) => {
+  ctx.inject(['sidebarRightTabs', 'sidebarRight', 'slots'], (scope) => {
     const tabs = scope.get('sidebarRightTabs')
+    const sidebarRight = scope.get('sidebarRight')
     const railSlots = scope.get('slots')
     const disposeType = tabs.register({
       id: RAIL_TYPE_ID,
-      kind: 'workbench-rail',
-      title: () => 'Project Info',
+      kind: RAIL_KIND,
+      title: () => 'Context',
       guide: [{
         order: 40,
-        title: () => 'Project Info',
-        description: () => 'Project, git state, recent files, and active terminals.',
+        title: () => 'Context',
+        description: () => 'Active human Workbench terminal sessions.',
       }],
     })
     const disposeBody = railSlots.inject('sidebar.right.pane.tab', () => railSlots.register(
       { name: 'sidebar.right.pane.tab', key: RAIL_TYPE_ID },
       () => <WorkbenchRail />,
     ))
-    scope.effect(() => () => { disposeBody(); disposeType() })
+    let opened = false
+    let attempts = 0
+    let retryTimer = null
+    let disposeReady = () => {}
+    const openInitialContext = () => {
+      if (opened) return
+      if (sidebarRight.active()?.kind === RAIL_KIND) {
+        opened = true
+        if (retryTimer !== null) clearInterval(retryTimer)
+        disposeReady()
+        return
+      }
+      try {
+        sidebarRight.openTab(RAIL_KIND)
+      } catch {}
+    }
+    disposeReady = sidebarRight.subscribe(openInitialContext)
+    sidebarRight.openCompanion('context')
+    queueMicrotask(openInitialContext)
+    // The session-scoped right seat can mount after this global plugin. Retry
+    // for one short boot window; page tabs deduplicate, and the timer stops as
+    // soon as the real Context tab is active. No user action is replayed later.
+    retryTimer = setInterval(() => {
+      attempts += 1
+      openInitialContext()
+      if (opened || attempts >= 50) {
+        clearInterval(retryTimer)
+        retryTimer = null
+      }
+    }, 100)
+    scope.effect(() => () => {
+      if (retryTimer !== null) clearInterval(retryTimer)
+      disposeReady()
+      disposeBody()
+      disposeType()
+    })
   })
 
   console.info(
-    `[dsh-workbench v${VERSION}] seats registered: sidebar.panellist + main[workbench] · keys ${summarize(
+    `[dsh-workbench v${VERSION}] seats registered: sidebar.navigation + main[workbench] · keys ${summarize(
       state.shortcuts,
       IS_MAC,
     )}`,
