@@ -98,11 +98,30 @@ switching to the Conversation panel and back does not destroy live sessions.
 
 ## Cockpit presentation and contextual rail
 
-The panel is styled to the fork's cockpit rather than rebuilt: a panel header
-(icon tile, `Workbench`, subtitle), the project toolbar, and a terminal card with
-its own header row (active preset, label, working directory), all on the fork's
-`--dsw-cockpit-*` / `--dsw-*` tokens. Presets, spawn/kill/restart, the keymap,
+The panel is a two-column surface of its own, composed to the cockpit reference
+on the fork's `--dsw-cockpit-*` / `--dsw-*` tokens. The working column carries a
+header (accent tile, `Workbench`, subtitle), a project toolbar (a chip menu over
+the registered projects, the absolute path, the git branch and tree state, an
+overflow with Copy path / Refresh / Forget, and Add Project), a tab strip whose
+tabs carry each preset's accent mark and slot number with a pinned `+`, the
+terminal card with its own header (preset mark, label, working-directory chip,
+Clear, Copy, and an overflow with Restart and Kill), and the dock. Beside it runs
+a full-height information rail. Presets, spawn/kill/restart, the keymap,
 scrollback, and project registration are unchanged.
+
+### The dock
+
+Under the terminal card, a `Chat` / `Context` pair. The composer sends
+**user-authored text only** into the currently selected DSH Session's
+Conversation, through the documented scope-addressed path
+`ctx.sessions.scope(id).conversation.send`, then switches to the Conversation so
+the turn is visible where it happens. With no session open the target chip says
+so and the composer is disabled.
+
+The five prompt chips prefill the composer and send nothing. The `Context` tab
+lists project facts — name, path, branch, tree state, terminal count — and its
+one action appends them to the message as text you can read and edit first.
+**No terminal output is ever read, quoted or attached**; see the security model.
 
 The plugin also registers one **read-only contextual rail tab** (`Project Info`)
 through the same public rail path any other type uses — `ctx.sidebarRightTabs.register`
@@ -113,7 +132,8 @@ Workbench-specific and the plugin stays an ordinary rail contributor.
 |---|---|
 | Project Info | the selected project, or the host working directory: name, absolute path, git branch, clean/changed, terminal count |
 | Recent Files | the most recently modified top-level entries of that directory |
-| Active Terminals | the live registry: label, preset colour, status |
+| Quick Actions | the applications DSH's own `ctx.openInApp` reports the host probed as installed, opening the project directory in one of them; absent when the service, the app list, or the path is |
+| Active Terminals | the live registry: label, preset colour, and uptime from `startedAt` |
 
 Git state and file listings are read **read-only** by the host over an additive
 `projectInfo` WebSocket message. The host resolves only project ids **it**
@@ -331,7 +351,7 @@ whenever the browser half changes.
 | DSH agent tools | unchanged — `ctx.sandbox.confine`, approval, fs sandbox |
 | **Human terminals (this)** | deliberately **unconfined**; you asked for arbitrary local execution |
 | External agents | their own permission/sandbox systems; DSH does not mediate |
-| DSH model → these terminals | **no path in V1**: no tool is registered |
+| DSH model → these terminals | **no path**: no tool is registered, and nothing this plugin sends can carry terminal content |
 
 The socket is fenced by `ctx.connection.requestRejection` — the same Host/Origin
 check and signed browser cookie that protects `/api`. It **fails closed**: if the
@@ -340,9 +360,22 @@ unauthenticated shell. The route is `/x/workbench/ws`, deliberately outside
 `/api`, which the connection row owns. The process environment is never returned
 to the client and never logged.
 
+The dock does not weaken that boundary, and is the reason to state it twice. It
+is a one-way text path **out** of the browser: what it sends is what the user
+typed into it. It never reads a PTY, an xterm buffer or the host's scrollback,
+and the `Context` tab carries only the same project metadata the rail already
+shows. Copy in the terminal card header is a browser-side read of the selection
+already on screen, into the clipboard the user asked for — it neither leaves the
+browser nor reaches the model. Quick Actions launch through DSH's existing
+`ctx.openInApp` capability on a directory this host already registered; this
+plugin adds no host action of its own.
+
 ## Not in V1
 
 No model visibility into these sessions, no output capture, no cross-harness
 comparison, no token/cost data, no persistence across a DSH restart. Sessions are
-process-local by design. The contextual rail tab is **read-only metadata**; Quick
-Actions and a bottom Chat/Context dock are deliberately deferred.
+process-local by design. The contextual rail tab is **read-only metadata**. The
+rail's Quick Actions are limited to `ctx.openInApp`: "Run Tests" and "View Logs"
+from the reference need host actions this plugin deliberately does not add, and
+a Push button is a credentialed network flow outside its remit — type `git push`
+in a terminal.
