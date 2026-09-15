@@ -35,6 +35,12 @@ built `lib/client.js`.
 
 Compatible DSH baseline: **`dsh-v0.1.5-rc.2`** (`@deepseek-ai/dsh` 0.1.5-rc.2).
 
+Two documents in the fork are the durable references for future work:
+`docs/COCKPIT_ROADMAP.md` states where the product is going (V1–V5, phase
+boundaries, what is deferred), and `docs/COCKPIT_FORK.md` states what the fork
+has actually changed (baseline, modified packages, security invariants, merge
+notes).
+
 ## Status
 
 Built and installed into the `web` profile. Two different reload rules apply:
