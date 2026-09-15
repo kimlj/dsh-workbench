@@ -226,6 +226,11 @@ const PANEL_CSS = `
 .dshwr-row[data-clean="true"] .dshwr-row-name{color:var(--dsw-cockpit-success,var(--dsw-alias-state-success-primary))}
 .dshwr-meta{margin-left:auto;flex:none;font-size:11.5px;color:var(--dsw-cockpit-text-muted,var(--dsw-alias-label-caption));font-variant-numeric:tabular-nums}
 .dshwr-empty{padding:0 6px;font-size:12.5px;line-height:24px;color:var(--dsw-cockpit-text-muted,var(--dsw-alias-label-caption))}
+.dshwr-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;padding:3px 6px 0}
+.dshwr-action{display:flex;align-items:center;gap:8px;min-width:0;height:36px;padding:0 9px;border:0.5px solid var(--dsw-cockpit-border-subtle,var(--dsw-alias-border-l1));border-radius:8px;background:var(--dsw-cockpit-bg-layer-1,var(--dsw-alias-bg-layer-1));color:var(--dsw-cockpit-text-secondary,var(--dsw-alias-label-secondary));font-size:12px;font-family:inherit;text-align:left;cursor:pointer}
+.dshwr-action:hover{background:var(--dsw-alias-interactive-bg-hover);color:var(--dsw-cockpit-text-primary,var(--dsw-alias-label-primary))}
+.dshwr-action-icon{flex:none;width:16px;height:16px;object-fit:contain}
+.dshwr-action-label{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .dshwr-more{align-self:flex-start;height:24px;padding:0 6px;border:0;border-radius:6px;background:transparent;color:var(--dsw-cockpit-accent-primary,#3b82f6);font-size:12px;font-family:inherit;cursor:pointer}
 .dshwr-more:hover{background:var(--dsw-alias-interactive-bg-hover)}
 .dshwr-foot{display:flex;align-items:center;gap:8px;flex:none;height:32px;padding:0 14px;border-top:0.5px solid var(--dsw-cockpit-border-subtle,var(--dsw-alias-border-l1));font-size:11.5px;color:var(--dsw-cockpit-text-muted,var(--dsw-alias-label-caption))}
@@ -956,6 +961,75 @@ function SessionDock({ project, info, projectPath }) {
   )
 }
 
+// ── quick actions, over a shipped capability ──────────────────────────────
+//
+// `ctx.openInApp` is DSH's own installed-application capability: the host
+// probes which editors and file managers exist and serves an icon per app, and
+// the Session header already offers the same launch. The rail reuses that
+// service rather than registering a host action of its own, so the tiles are
+// the real thing on the machines that have those apps — and the section simply
+// does not render where the service, or the app list, is absent.
+
+/** The openInApp service, or null in a composition without it. */
+function openInAppService() {
+  if (pluginCtx === null) return null
+  try {
+    const service = pluginCtx.get('openInApp')
+    return service === undefined ? null : service
+  } catch {
+    return null
+  }
+}
+
+/** A translate function for the open-in-app dictionary, or null. */
+function openInAppLabels() {
+  if (pluginCtx === null) return null
+  try {
+    const locale = pluginCtx.get('locale')
+    return typeof locale?.bind === 'function' ? locale.bind('open-in-app') : null
+  } catch {
+    return null
+  }
+}
+
+/**
+ * The rail's Quick Actions grid: one tile per installed application, opening
+ * the current project directory in it.
+ * @param props.path - the directory the tiles act on.
+ * @returns The section, or nothing when no real action is available.
+ */
+function QuickActions({ path }) {
+  const service = openInAppService()
+  const [, forceRender] = React.useReducer((count) => count + 1, 0)
+  React.useEffect(() => (service === null ? undefined : service.apps.subscribe(forceRender)), [service])
+  if (service === null || path === '') return null
+  const apps = service.apps.getSnapshot()
+  if (apps === null || apps.length === 0) return null
+  const t = openInAppLabels()
+  return (
+    <section className="dshwr-section">
+      <span className="dshwr-head"><Glyph name="panel" size={15} />Quick Actions</span>
+      <div className="dshwr-grid">
+        {apps.slice(0, 4).map((appId) => {
+          const label = t === null ? appId : t(service.labelKey(appId))
+          return (
+            <button
+              key={appId}
+              type="button"
+              className="dshwr-action"
+              title={`Open ${path} in ${label}`}
+              onClick={() => { void service.launch(appId, path).catch(() => {}) }}
+            >
+              <img className="dshwr-action-icon" src={service.iconUrl(appId)} alt="" aria-hidden="true" />
+              <span className="dshwr-action-label">{label}</span>
+            </button>
+          )
+        })}
+      </div>
+    </section>
+  )
+}
+
 /**
  * The read-only rail sections, shared by the Workbench's always-visible info
  * column and by the rail tab the plugin registers.
@@ -1011,6 +1085,8 @@ function RailSections() {
           </button>
         )}
       </section>
+
+      <QuickActions path={info?.path ?? project?.path ?? state.defaultCwd ?? ''} />
 
       <section className="dshwr-section">
         <span className="dshwr-head"><Glyph name="terminal" size={15} />Active Terminals</span>
