@@ -121,8 +121,8 @@ selects a tab of the **right companion rail**, whose four tabs are permanent:
 
 | Rail tab | Content |
 |---|---|
-| Home | Active Terminals from the live registry — label, preset colour, uptime |
 | Chat | the native DSH Conversation (composer, attachments, permissions, model/effort) |
+| Home | Active Terminals from the live registry — label, preset colour, uptime |
 | Files | the project file manager/editor over the confined host file service |
 | Trajectory | the native DSH session trajectory |
 
