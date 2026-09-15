@@ -16,11 +16,10 @@
 import { execFile } from 'node:child_process'
 import { randomUUID } from 'node:crypto'
 import { existsSync, statSync } from 'node:fs'
-import { readdir, stat } from 'node:fs/promises'
 import { createRequire } from 'node:module'
-import { join } from 'node:path'
 
 import { launchFor, presetCatalogue } from './presets.js'
+import { ProjectFileService } from './project-files.js'
 
 const require = createRequire(import.meta.url)
 const pty = require('node-pty')
@@ -84,34 +83,6 @@ async function readGitState(cwd) {
 }
 
 /**
- * The most recently modified top-level entries of a directory.
- * @param cwd - project directory.
- * @param limit - maximum entries returned.
- * @returns name, directory flag, and mtime per entry, newest first.
- */
-async function recentFiles(cwd, limit) {
-  try {
-    const entries = await readdir(cwd, { withFileTypes: true })
-    const files = await Promise.all(entries
-      .filter((entry) => !entry.name.startsWith('.'))
-      .map(async (entry) => {
-        try {
-          const info = await stat(join(cwd, entry.name))
-          return { name: entry.name, dir: entry.isDirectory(), mtime: info.mtimeMs }
-        } catch {
-          return null
-        }
-      }))
-    return files
-      .filter((entry) => entry !== null)
-      .sort((left, right) => right.mtime - left.mtime)
-      .slice(0, limit)
-  } catch {
-    return []
-  }
-}
-
-/**
  * Owns every human terminal session and every project the user has registered.
  * It emits plain JSON events; the transport layer decides who receives them.
  */
@@ -126,6 +97,13 @@ export class WorkbenchRegistry {
     this.sessions = new Map()
     this.projects = []
     this.disposed = false
+    this.projectFiles = new ProjectFileService((projectId) => this.projectRoot(projectId))
+  }
+
+  /** Resolve only an id this registry owns; file access never accepts a cwd. */
+  projectRoot(projectId) {
+    if (projectId === DEFAULT_PROJECT_ID) return this.defaultCwd
+    return this.projects.find((entry) => entry.id === projectId)?.path ?? null
   }
 
   // ── projects ────────────────────────────────────────────────────────────
@@ -176,8 +154,8 @@ export class WorkbenchRegistry {
   }
 
   /**
-   * Read-only metadata for one registered project: git branch and state, and
-   * the most recently modified top-level entries. Resolves only ids this
+   * Read-only metadata for one registered project: git branch and state.
+   * Resolves only ids this
    * registry holds, runs no model-facing tool, and never returns the process
    * environment.
    * @param projectId - a project id from `listProjects()`.
@@ -188,11 +166,23 @@ export class WorkbenchRegistry {
       ? { id: DEFAULT_PROJECT_ID, name: 'Working directory', path: this.defaultCwd }
       : this.projects.find((entry) => entry.id === projectId)
     if (project === undefined) return null
-    const [git, files] = await Promise.all([
-      readGitState(project.path),
-      recentFiles(project.path, 5),
-    ])
-    return { id: project.id, name: project.name, path: project.path, ...git, files }
+    const git = await readGitState(project.path)
+    return { id: project.id, name: project.name, path: project.path, ...git }
+  }
+
+  /** List one project directory for the human-facing Files panel. */
+  listProjectFiles(projectId, relativePath) {
+    return this.projectFiles.list(projectId, relativePath)
+  }
+
+  /** Read one project text file for the human-facing editor. */
+  readProjectFile(projectId, relativePath) {
+    return this.projectFiles.read(projectId, relativePath)
+  }
+
+  /** Save one project text file after its read version is checked. */
+  writeProjectFile(projectId, relativePath, content, expectedVersion) {
+    return this.projectFiles.write(projectId, relativePath, content, expectedVersion)
   }
 
   // ── sessions ────────────────────────────────────────────────────────────

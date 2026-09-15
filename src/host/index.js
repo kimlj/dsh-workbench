@@ -77,6 +77,16 @@ function send(socket, event) {
   }
 }
 
+function sendFailure(socket, message, error) {
+  send(socket, {
+    t: 'error',
+    id: typeof message.id === 'string' ? message.id : null,
+    requestId: message.requestId ?? null,
+    code: typeof error?.code === 'string' ? error.code : 'WORKBENCH_ERROR',
+    message: String(error?.message ?? error),
+  })
+}
+
 /**
  * Host plugin entry point.
  * @param ctx - host plugin context.
@@ -190,16 +200,43 @@ export function apply(ctx) {
           return
         }
 
+        case 'fileList': {
+          const requestId = message.requestId ?? null
+          Promise.resolve(registry.listProjectFiles(message.projectId, message.path)).then(
+            (result) => { send(socket, { t: 'fileList', result, requestId }) },
+            (error) => { sendFailure(socket, message, error) },
+          )
+          return
+        }
+
+        case 'fileRead': {
+          const requestId = message.requestId ?? null
+          Promise.resolve(registry.readProjectFile(message.projectId, message.path)).then(
+            (result) => { send(socket, { t: 'fileRead', result, requestId }) },
+            (error) => { sendFailure(socket, message, error) },
+          )
+          return
+        }
+
+        case 'fileWrite': {
+          const requestId = message.requestId ?? null
+          Promise.resolve(registry.writeProjectFile(
+            message.projectId,
+            message.path,
+            message.content,
+            message.expectedVersion,
+          )).then(
+            (result) => { send(socket, { t: 'fileWrite', result, requestId }) },
+            (error) => { sendFailure(socket, message, error) },
+          )
+          return
+        }
+
         default:
           return
       }
     } catch (error) {
-      send(socket, {
-        t: 'error',
-        id,
-        requestId: message.requestId ?? null,
-        message: String(error?.message ?? error),
-      })
+      sendFailure(socket, message, error)
     }
   }
 
