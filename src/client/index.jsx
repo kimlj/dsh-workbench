@@ -169,6 +169,39 @@ const PANEL_CSS = `
 .dshw-empty-title{font-size:13.5px;color:var(--dsw-cockpit-text-secondary,var(--dsw-alias-label-secondary))}
 .dshw-err{color:var(--dsw-alias-state-error-primary);font-weight:600}
 
+/* ── dock ─────────────────────────────────────────────────────────────── */
+.dshw-dock{display:flex;flex-direction:column;flex:none;margin:0 18px;padding-bottom:16px}
+.dshw-docktabs{display:flex;align-items:center;gap:2px;flex:none;height:44px;border-bottom:0.5px solid var(--dsw-cockpit-border-subtle,var(--dsw-alias-border-l1))}
+.dshw-docktab{display:inline-flex;align-items:center;gap:7px;height:43px;padding:0 9px;border:0;border-bottom:2px solid transparent;background:transparent;color:var(--dsw-cockpit-text-secondary,var(--dsw-alias-label-secondary));font-size:13px;font-family:inherit;cursor:pointer}
+.dshw-docktab:hover{color:var(--dsw-cockpit-text-primary,var(--dsw-alias-label-primary))}
+.dshw-docktab[data-active="true"]{color:var(--dsw-cockpit-text-primary,var(--dsw-alias-label-primary));border-bottom-color:var(--dsw-cockpit-accent-primary,#3b82f6)}
+.dshw-dockcollapse{margin-left:auto}
+.dshw-dockcollapse svg{transition:transform 120ms ease}
+.dshw-dockcollapse[data-collapsed="true"] svg{transform:rotate(180deg)}
+.dshw-dockbadge{display:inline-grid;place-items:center;min-width:17px;height:16px;padding:0 5px;border-radius:999px;background:var(--dsw-alias-interactive-bg-hover);color:var(--dsw-cockpit-text-secondary,var(--dsw-alias-label-secondary));font-size:10.5px;font-variant-numeric:tabular-nums}
+.dshw-prompts{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;padding:17px 0 15px}
+.dshw-prompt{height:30px;padding:0 13px;border:0.5px solid var(--dsw-cockpit-border-subtle,var(--dsw-alias-border-l1));border-radius:999px;background:transparent;color:var(--dsw-cockpit-text-secondary,var(--dsw-alias-label-secondary));font-size:12.5px;font-family:inherit;cursor:pointer;white-space:nowrap}
+.dshw-prompt:hover:not(:disabled){background:var(--dsw-alias-interactive-bg-hover);color:var(--dsw-cockpit-text-primary,var(--dsw-alias-label-primary))}
+.dshw-prompt:disabled{opacity:.4;cursor:not-allowed}
+.dshw-composer{display:flex;flex-direction:column;gap:10px;padding:13px 12px 11px 14px;border:0.5px solid var(--dsw-cockpit-border-subtle,var(--dsw-alias-border-l1));border-radius:12px;background:var(--dsw-cockpit-bg-layer-1,var(--dsw-alias-bg-layer-1))}
+.dshw-composer:focus-within{border-color:color-mix(in srgb,var(--dsw-cockpit-accent-primary,#3b82f6) 45%,transparent)}
+.dshw-ask{width:100%;min-height:58px;max-height:140px;padding:0;border:0;background:transparent;color:var(--dsw-cockpit-text-primary,var(--dsw-alias-label-primary));font:inherit;font-size:13.5px;line-height:21px;resize:none;outline:none}
+.dshw-ask::placeholder{color:var(--dsw-cockpit-text-muted,var(--dsw-alias-label-caption))}
+.dshw-composer-foot{display:flex;align-items:center;gap:8px}
+.dshw-scope{display:inline-flex;align-items:center;gap:6px;max-width:320px;height:27px;padding:0 9px;border:0.5px solid var(--dsw-cockpit-border-subtle,var(--dsw-alias-border-l1));border-radius:7px;background:transparent;color:var(--dsw-cockpit-text-secondary,var(--dsw-alias-label-secondary));font-size:12px;font-family:inherit;cursor:pointer;white-space:nowrap}
+.dshw-scope:hover:not(:disabled){background:var(--dsw-alias-interactive-bg-hover)}
+.dshw-scope:disabled{cursor:default}
+.dshw-scope-label{min-width:0;overflow:hidden;text-overflow:ellipsis}
+.dshw-send{display:inline-grid;place-items:center;flex:none;width:31px;height:31px;border:0;border-radius:999px;background:var(--dsw-cockpit-accent-primary,#3b82f6);color:#fff;cursor:pointer}
+.dshw-send:hover:not(:disabled){background:var(--dsw-cockpit-accent-hover,#2563eb)}
+.dshw-send:disabled{background:var(--dsw-alias-interactive-bg-hover);color:var(--dsw-cockpit-text-muted,var(--dsw-alias-label-caption));cursor:not-allowed}
+.dshw-context{display:flex;flex-direction:column;gap:2px;padding:12px 2px 14px}
+.dshw-ctxrow{display:flex;align-items:center;gap:9px;height:27px;font-size:12.5px;color:var(--dsw-cockpit-text-secondary,var(--dsw-alias-label-secondary))}
+.dshw-ctxkey{flex:none;width:96px;color:var(--dsw-cockpit-text-muted,var(--dsw-alias-label-caption))}
+.dshw-ctxval{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--dsw-cockpit-text-primary,var(--dsw-alias-label-primary))}
+.dshw-ctxval[data-mono="true"]{font-family:var(--ds-font-family-code,ui-monospace,monospace);font-size:12px}
+.dshw-ctxnote{padding-top:7px;font-size:11.5px;line-height:17px;color:var(--dsw-cockpit-text-muted,var(--dsw-alias-label-caption))}
+
 /* ── shortcut editor ──────────────────────────────────────────────────── */
 .dshw-keys{display:flex;flex-wrap:wrap;gap:9px;align-items:center;flex:none;padding:10px 18px;border-bottom:0.5px solid var(--dsw-cockpit-border-subtle,var(--dsw-alias-border-l1));font-size:12px}
 .dshw-keys label{display:inline-flex;align-items:center;gap:6px}
@@ -664,6 +697,262 @@ function PresetMark({ presetId, accent, size = 20 }) {
     >
       {mark}
     </span>
+  )
+}
+
+// ── the DSH conversation, addressed from root scope ───────────────────────
+//
+// The dock's composer sends **user-authored text** into the current DSH
+// Session's Conversation through the documented scope-addressed path
+// (`ctx.sessions.scope(id).conversation.send`). It never reads a PTY, a
+// scrollback buffer or any terminal output: the security boundary is that the
+// DSH model has no path to these terminals, and a composer that could quote
+// them would be exactly that path. Absent services disable the control rather
+// than faking it.
+
+/** The client sessions service, or null in a composition without it. */
+function sessionsService() {
+  if (pluginCtx === null) return null
+  try {
+    const service = pluginCtx.get('sessions')
+    return service === undefined ? null : service
+  } catch {
+    return null
+  }
+}
+
+/** The DSH Session a composed message would go to, or null when there is none. */
+function conversationTarget() {
+  const sessions = sessionsService()
+  if (sessions === null || typeof sessions.list?.getSnapshot !== 'function') return null
+  let snapshot
+  try {
+    snapshot = sessions.list.getSnapshot()
+  } catch {
+    return null
+  }
+  const id = snapshot?.current
+  if (id === undefined || id === null) return null
+  const title = snapshot.byId?.[id]?.title
+  return { id, title: typeof title === 'string' && title !== '' ? title : 'Current session' }
+}
+
+/**
+ * Send one user-authored prompt into a Session's Conversation.
+ * @param id - target Session id.
+ * @param text - the text the user typed.
+ */
+async function sendToConversation(id, text) {
+  const sessions = sessionsService()
+  const scope = sessions === null || typeof sessions.scope !== 'function' ? undefined : sessions.scope(id)
+  const conversation = scope?.conversation
+  if (conversation === undefined || typeof conversation.send !== 'function') {
+    throw new Error('the conversation service is unavailable in this composition')
+  }
+  await conversation.send(text)
+}
+
+/** The five one-click openings the reference shows; each prefills, none sends. */
+const PROMPT_CHIPS = [
+  'Explain this code',
+  'Find related files',
+  'Draft a commit message',
+  'Debug this issue',
+  'Plan next steps',
+]
+
+/**
+ * The dock under the terminal card: a Chat composer addressed at the current
+ * DSH Session, and a Context tab listing the project facts a message can carry.
+ * @param props.project - the resolved project record, if one is selected.
+ * @param props.info - read-only project metadata from the host.
+ * @param props.projectPath - the working directory new terminals start in.
+ * @returns The dock.
+ */
+function SessionDock({ project, info, projectPath }) {
+  const [tab, setTab] = React.useState('chat')
+  const [collapsed, setCollapsed] = React.useState(false)
+  const [text, setText] = React.useState('')
+  const [busy, setBusy] = React.useState(false)
+  const [error, setError] = React.useState(null)
+  const [, forceRender] = React.useReducer((count) => count + 1, 0)
+  const askRef = React.useRef(null)
+
+  // The target follows DSH's own session selection, so the chip never claims a
+  // session that has since been closed or switched away from.
+  React.useEffect(() => {
+    const sessions = sessionsService()
+    if (sessions === null || typeof sessions.list?.subscribe !== 'function') return undefined
+    return sessions.list.subscribe(forceRender)
+  }, [])
+
+  const target = conversationTarget()
+  const facts = [
+    ['Project', info?.name ?? project?.name ?? 'Working directory', false],
+    ['Path', projectPath, true],
+    info?.branch == null ? null : ['Branch', info.branch, false],
+    info?.clean === undefined
+      ? null
+      : ['State', info.clean === true ? 'Clean' : `${info.changed} changed`, false],
+    ['Terminals', `${state.sessions.length} open`, false],
+  ].filter((fact) => fact !== null)
+
+  const submit = () => {
+    const prompt = text.trim()
+    if (prompt === '' || target === null || busy) return
+    setBusy(true)
+    setError(null)
+    sendToConversation(target.id, prompt).then(
+      () => {
+        setBusy(false)
+        setText('')
+        // Show the turn where it actually happens; the Workbench stays one click away.
+        try {
+          pluginCtx?.get('layout')?.selectPanel(null)
+        } catch {
+          // A composition without the layout service simply stays put.
+        }
+      },
+      (failure) => {
+        setBusy(false)
+        setError(String(failure?.message ?? failure))
+      },
+    )
+  }
+
+  const prefill = (chip) => {
+    setTab('chat')
+    setText(current => (current.trim() === '' ? chip : `${current.trimEnd()} ${chip}`))
+    window.requestAnimationFrame(() => askRef.current?.focus())
+  }
+
+  return (
+    <div className="dshw-dock">
+      <div className="dshw-docktabs" role="tablist">
+        <button
+          type="button"
+          role="tab"
+          className="dshw-docktab"
+          data-active={tab === 'chat'}
+          aria-selected={tab === 'chat'}
+          onClick={() => setTab('chat')}
+        >
+          <Glyph name="chat" size={15} />
+          Chat
+        </button>
+        <button
+          type="button"
+          role="tab"
+          className="dshw-docktab"
+          data-active={tab === 'context'}
+          aria-selected={tab === 'context'}
+          onClick={() => setTab('context')}
+        >
+          <Glyph name="layers" size={15} />
+          Context
+          <span className="dshw-dockbadge">{facts.length}</span>
+        </button>
+        <button
+          type="button"
+          className="dshw-icon dshw-dockcollapse"
+          data-collapsed={collapsed}
+          aria-expanded={!collapsed}
+          aria-label={collapsed ? 'Expand the dock' : 'Collapse the dock'}
+          title={collapsed ? 'Expand the dock' : 'Collapse the dock — give the height to the terminal'}
+          onClick={() => setCollapsed(open => !open)}
+        >
+          <Glyph name="chevron" size={16} />
+        </button>
+      </div>
+
+
+      {collapsed ? null : tab === 'context'
+        ? (
+          <div className="dshw-context">
+            {facts.map(([key, value, mono]) => (
+              <div className="dshw-ctxrow" key={key}>
+                <span className="dshw-ctxkey">{key}</span>
+                <span className="dshw-ctxval" data-mono={mono} title={value}>{value}</span>
+              </div>
+            ))}
+            <p className="dshw-ctxnote">
+              Terminal output is never part of this context. Add these facts to the message and
+              they go as text you can read and edit first.
+            </p>
+            <button
+              type="button"
+              className="dshw-btn"
+              style={{ alignSelf: 'flex-start', marginTop: 6 }}
+              onClick={() => {
+                const block = facts.map(([key, value]) => `${key}: ${value}`).join('\n')
+                setTab('chat')
+                setText(current => (current.trim() === '' ? `${block}\n\n` : `${current.trimEnd()}\n\n${block}\n\n`))
+                window.requestAnimationFrame(() => askRef.current?.focus())
+              }}
+            >
+              Add to message
+            </button>
+          </div>
+        )
+        : (
+          <>
+            <div className="dshw-prompts">
+              {PROMPT_CHIPS.map((chip) => (
+                <button
+                  key={chip}
+                  type="button"
+                  className="dshw-prompt"
+                  title="Put this in the message — nothing is sent until you press Send"
+                  onClick={() => prefill(chip)}
+                >
+                  {chip}
+                </button>
+              ))}
+            </div>
+            <div className="dshw-composer">
+              <textarea
+                ref={askRef}
+                className="dshw-ask"
+                rows={2}
+                value={text}
+                spellCheck={false}
+                placeholder={target === null ? 'Start a session to ask anything…' : 'Ask anything…'}
+                disabled={target === null}
+                onChange={(event) => setText(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter' && !event.shiftKey) {
+                    event.preventDefault()
+                    submit()
+                  }
+                }}
+              />
+              <div className="dshw-composer-foot">
+                <span
+                  className="dshw-scope"
+                  title={target === null
+                    ? 'No DSH session is open, so there is nowhere to send a message'
+                    : `The message goes to the conversation in “${target.title}”`}
+                >
+                  <Glyph name="chat" size={13} />
+                  <span className="dshw-scope-label">{target === null ? 'No session' : target.title}</span>
+                </span>
+                {error !== null && <span className="dshw-err" style={{ fontSize: 11.5 }}>{error}</span>}
+                <span className="dshw-spacer" />
+                <button
+                  type="button"
+                  className="dshw-send"
+                  disabled={target === null || busy || text.trim() === ''}
+                  title={target === null ? 'No DSH session is open' : 'Send to the conversation (Enter)'}
+                  aria-label="Send"
+                  onClick={submit}
+                >
+                  <Glyph name="send" size={15} />
+                </button>
+              </div>
+            </div>
+          </>
+        )}
+    </div>
   )
 }
 
@@ -1266,6 +1555,8 @@ function WorkbenchPanel() {
             )}
           </div>
         </div>
+
+        <SessionDock project={project} info={info} projectPath={projectPath} />
       </div>
 
       <aside className="dshw-rail" aria-label="Project information">
