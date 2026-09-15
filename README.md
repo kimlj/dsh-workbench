@@ -70,7 +70,7 @@ browser                                    host (Node)
 │  · project toolbar             │ ◄──────► │  · ctx.connection.requestRejection│
 │  · preset tabs + terminal card │          │    (401/403, fails closed)       │
 │  · xterm.js per session        │          │  WorkbenchRegistry               │
-│  · utility panel (Files/…)     │          │   · node-pty per session         │
+│  · utility panel (Activity/…)  │          │   · node-pty per session         │
 └───────────────────────────────┘          │   · node-pty per session         │
                                            │   · ring-buffer scrollback       │
                                            │   · kill + taskkill /T /F        │
@@ -103,7 +103,7 @@ switching to the Conversation panel and back does not destroy live sessions.
   fallback.
 * node-pty's `win32-x64` prebuilds ship in the package — no build toolchain.
 
-## Cockpit presentation, companion drawer, and utility panel
+## Cockpit presentation and the companion rail
 
 The panel is a two-column surface of its own, composed to the cockpit reference
 on the fork's `--dsw-cockpit-*` / `--dsw-*` tokens. The working column carries a
@@ -116,37 +116,50 @@ with Restart and Kill). Presets, spawn/kill/restart, the keymap, scrollback, and
 project registration are unchanged.
 
 The plugin registers **Chat / Trajectory / Workbench** rows into the fork's
-`sidebar.navigation` seat. Chat and Trajectory open the native DSH conversation in
-the right companion drawer — the same Conversation tree, composer, attachments,
-permissions, and model/effort controls the fork hosts — without unmounting the
-Workbench, so a running PTY is never restarted by a mode switch. Where the
-companion capability is absent the plugin registers nothing and stock behaviour
-stands.
+`sidebar.navigation` seat. Every row keeps the centre panel on the Workbench and
+selects a tab of the **right companion rail**, whose four tabs are permanent:
+
+| Rail tab | Content |
+|---|---|
+| Home | Active Terminals from the live registry — label, preset colour, uptime |
+| Chat | the native DSH Conversation (composer, attachments, permissions, model/effort) |
+| Files | the project file manager/editor over the confined host file service |
+| Trajectory | the native DSH session trajectory |
+
+A fresh load opens the rail on **Chat**, so the Workbench is in the centre and
+DSH Chat is on the right, with Home one click away. Chat, Files, and Trajectory
+use the wider remembered rail width; Home keeps the compact width. Switching tabs
+never unmounts the centre tree, so a running PTY is never restarted. The rail
+keeps the fork's generic docking surface as its fallback, so a composition
+without this plugin is unchanged.
+
+### Files in the rail
+
+`Files` is a first-class rail tab: the project tree, and — once a file is opened —
+the editor with its tabs, dirty state, explicit Save, external-modification
+detection, and a Back control back to the tree. At rail width the tree and the
+editor swap; from roughly 560px they sit side by side. It reuses the same
+`FilesWorkspace` and the same host service as before; only its home moved from
+the bottom panel into the rail.
 
 ### The bottom utility panel
 
 The old bottom Chat/Context dock is gone. Its footprint is a generic, vertically
-resizable and collapsible utility panel: `Files | Activity | Problems | Output`.
-It remembers its height, collapsed state, and selected tab per browser profile.
-The terminal keeps approximately its previous height in the normal expanded
-layout and only grows when the panel is deliberately collapsed.
+resizable and collapsible utility panel carrying only deterministic operational
+surfaces: `Activity | Problems | Output`. It remembers its height, collapsed
+state, and selected tab per browser profile, and the terminal keeps approximately
+its previous height in the normal expanded layout — it only grows when the panel
+is deliberately collapsed. All three tabs are deliberate empty states: no
+deterministic event, diagnostic, or task-output feed exists yet, so nothing is
+fabricated to fill them.
 
-`Files` is the one populated capability — a project-root tree beside a textarea
-editor with editor tabs, dirty state, explicit Save, external-modification
-detection, and maximize/restore (which keeps the PTYs mounted). `Activity`,
-`Problems`, and `Output` are deliberate empty states: no deterministic event,
-diagnostic, or task-output feed exists yet, so nothing is fabricated to fill them.
+### Home
 
-### The Context rail
-
-Beside the panel runs a full-height information rail, presented through the
-fork's native companion column rather than a plugin-drawn `<aside>`. Its tab
-shows only **Active Terminals**, read from the live registry — label, preset
-colour, and uptime. The previous Project Info, Recent Files, and Quick Actions
-sections were removed: project identity now lives once, in the Workbench header,
-and project files belong to the bottom `Files` panel. The freed rail space is
-intentionally empty; it is reserved for a future evidence-backed intelligence
-surface that is not implemented here.
+`Home` shows only **Active Terminals**, read from the live registry — label,
+preset colour, and uptime. Project Info, Recent Files, and Quick Actions were
+removed: project identity lives once, in the Workbench header, and project files
+have their own rail tab. The rest of Home is intentionally empty; it is reserved
+for a future evidence-backed intelligence surface that is not implemented here.
 
 Git state is read **read-only** by the host over an additive `projectInfo`
 WebSocket message, and project files over additive `fileList` / `fileRead` /
@@ -305,7 +318,7 @@ pnpm dsh web --no-open --port 3091   # prints http://127.0.0.1:3091/?token=…
 
 Open the printed URL once (the token sets the signed browser cookie). The
 `Workbench` row then appears in the sidebar's navigation cluster, and its
-`Context` tab (Active Terminals) is available from the right companion column.
+`Home` tab (Active Terminals) is available from the right companion column.
 
 ## Build
 
@@ -354,7 +367,7 @@ whenever the browser half changes.
 | `src/host/project-files.js` | confined project file service: realpath-checked root, bounded UTF-8 reads, version-checked saves |
 | `src/host/presets.js` | preset catalogue + Windows executable/shim resolution |
 | `src/client/index.jsx` | cockpit presentation, panel, companion navigation rows, project selector, xterm, module-scope store |
-| `src/client/utility-panel.jsx` | the bottom Files/Activity/Problems/Output panel and the project file editor |
+| `src/client/utility-panel.jsx` | the rail's project file manager/editor (`FilesWorkspace`) and the bottom Activity/Problems/Output utility panel (`UtilityPanel`) |
 | `src/client/keymap.js` | V1.1 shortcut grammar, matching, target resolution, persistence (pure) |
 | `test/keymap.test.mjs` | unit tests for the keyboard layer (`node --test`) |
 | `test/project-files.test.mjs` | confinement, version-check, and UTF-8 tests for the file service |
@@ -379,11 +392,11 @@ unauthenticated shell. The route is `/x/workbench/ws`, deliberately outside
 `/api`, which the connection row owns. The process environment is never returned
 to the client and never logged.
 
-The companion drawer and the file service do not weaken that boundary, which is
+The companion rail and the file service do not weaken that boundary, which is
 the reason to state it twice. Chat is the fork's native Conversation, re-homed
 into the right column: it sends only **user-authored text** through the Session's
 own conversation services and never reads a PTY, an xterm buffer, or the host's
-scrollback. The bottom `Files` panel reaches the host only through the
+scrollback. The companion rail's `Files` tab reaches the host only through the
 authenticated socket, and `src/host/project-files.js` resolves only project ids
 the registry holds, realpaths the registered root, rejects lexical and symlink
 escapes, bounds reads to 2 MiB of UTF-8, and refuses a save whose file changed
